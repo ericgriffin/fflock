@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import globals
 import os
 import time
 from datetime import datetime
@@ -18,7 +19,7 @@ def signal_handler(signal, frame):
     @param signal:
     @param frame:
     """
-    #unload()
+    unload()
     sys.exit(0)
 
 
@@ -35,6 +36,7 @@ def unload():
     nfsmount = "-1"
     for row in results:
         cursor2 = db.cursor()
+        #TODO refactor so only 1 sql query
         if row[2] == "Local" and row[3] == 1:
             cursor2.execute("SELECT LocalPathNFS FROM Storage WHERE UUID=%s", row[1])
             results2 = cursor2.fetchone()
@@ -44,6 +46,7 @@ def unload():
             results2 = cursor2.fetchone()
             nfsmount = results2[0]
         nfsmountpath = nfsmount.split(':', 1)[-1]
+        nfsmountpath = globals.SLAVE_MOUNT_PREFIX_PATH + nfsmountpath
         unmountnfsshare = "umount -l %s" % nfsmountpath
         if os.path.ismount(nfsmountpath):
             print "Un-mounting NFS share ", nfsmountpath
@@ -115,6 +118,7 @@ def calculate_connectivity():
 
         if latency != -1:
             cursor2 = db.cursor()
+            #TODO add WHERE clause to remove if statement below
             cursor2.execute("SELECT SlaveServerUUID, StorageUUID FROM Connectivity")
             results2 = cursor2.fetchall()
             for row2 in results2:
@@ -122,6 +126,7 @@ def calculate_connectivity():
                     cursor.execute("UPDATE Connectivity SET Latency = %s, IPType = %s WHERE SlaveServerUUID = %s AND StorageUUID = %s", (latency, iptype, _uuid, row[0]))
                     connection_already_exists = 1
             if connection_already_exists == 0:
+                print "Adding connectivity information between slave %s and storage %s" % (_uuid, row[0])
                 cursor.execute('INSERT INTO Connectivity(SlaveServerUUID, StorageUUID, Latency, IPType, Connected) VALUES(%s,%s,%s,%s,%s)', (_uuid, row[0], localserverlatency, iptype, 0))
         else:
             print "No connectivity to Storage Server %s" % row[0]
@@ -142,33 +147,43 @@ def mount_storage():
     results = cursor.fetchall()
 
     for row in results:
+        slaveserveruuid = row[0]
+        storageuuid = row[1]
+        iptype = row[2]
+        connected = row[3]
+
         cursor2 = db.cursor()
         nfsmount = "-1"
-        if row[2] == "Local":
-            cursor2.execute("SELECT LocalPathNFS FROM Storage WHERE UUID=%s", row[1])
+
+        #TODO refactor if and sql queries below to have only 1 sql query
+        if iptype == "Local":
+            cursor2.execute("SELECT LocalPathNFS FROM Storage WHERE UUID=%s", storageuuid)
             results2 = cursor2.fetchone()
             nfsmount = results2[0]
-        elif row[2] == "Public":
-            cursor2.execute("SELECT PublicPathNFS FROM Storage WHERE UUID=%s", row[1])
+        elif iptype == "Public":
+            cursor2.execute("SELECT PublicPathNFS FROM Storage WHERE UUID=%s", storageuuid)
             results2 = cursor2.fetchone()
             nfsmount = results2[0]
         if nfsmount != "-1":
             nfsmountpath = nfsmount.split(':', 1)[-1]
+            nfsmountpath = globals.SLAVE_MOUNT_PREFIX_PATH + nfsmountpath
+
             mountnfsshare = "mount -o rw -t nfs %s %s" % (nfsmount, nfsmountpath)
             if not os.path.exists(nfsmountpath):
                 print "Creating ", nfsmountpath
                 os.makedirs(nfsmountpath)
             if not os.path.ismount(nfsmountpath):
-                print "Mounting NFS share ", nfsmountpath
+                print "Mounting NFS share %s" % nfsmountpath
                 joblist=[]
                 joblist.append(Popen(mountnfsshare, shell=True))
                 joblist[0].wait()
             # if storage is not connected
-            if row[3] != 1:
-                if check_nfs_connectivity(nfsmountpath, row[1]):
+            if connected != 1:
+                if check_nfs_connectivity(nfsmountpath, storageuuid):
                     cursor3 = db.cursor()
-                    cursor3.execute("UPDATE Connectivity SET Connected=%s WHERE SlaveServerUUID=%s AND StorageUUID=%s", (1, _uuid, row[1]))
+                    cursor3.execute("UPDATE Connectivity SET Connected=%s WHERE SlaveServerUUID=%s AND StorageUUID=%s", (1, _uuid, storageuuid))
                 else:
+                    print "Un-mounting NFS share %s" % nfsmountpath
                     unmountnfsshare = "umount -l %s" % nfsmountpath
                     joblist=[]
                     joblist.append(Popen(unmountnfsshare, shell=True))
@@ -204,9 +219,9 @@ def check_nfs_connectivity(nfsmountpath, storageuuid):
             os.remove(filename_confirm)
             retval = True
 
-    if retval == False:
+    if not retval:
         print "Storage not ready"
-    if retval == True:
+    if retval:
         print "Storage access confirmed"
     return retval
 
@@ -255,27 +270,33 @@ def fetch_jobs():
 
         connected_type = check_storage_connected(storageuuid)
 
-        nfsmountpath = ""
-        cursor2 = db.cursor()
-        cursor2.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE ServerUUID = %s", storageuuid)
-        result2 = cursor2.fetchone()
-
-        if connected_type == "Local":
-            nfsmountpath = result2[0].split(':', 1)[-1]
-        if connected_type == "Public":
-            nfsmountpath = result2[1].split(':', 1)[-1]
-
-        #prepend nfs mount path to input and output file
-        input = nfsmountpath + input
-        output = nfsmountpath + output
-
-        print input, " ", output
-
         if connected_type != "No":
+            nfsmountpath = ""
+            cursor2 = db.cursor()
+            cursor2.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID = %s", storageuuid)
+            result2 = cursor2.fetchone()
+
+            if connected_type == "Local":
+                print "Running job %s from storage %s over Local network" % (jobuuid, storageuuid)
+                print result2[0]
+                nfsmountpath = result2[0].split(':', 1)[-1]
+            if connected_type == "Public":
+                print "Running job %s from storage %s over Public network" % (jobuuid, storageuuid)
+                nfsmountpath = result2[1].split(':', 1)[-1]
+
+            nfsmountpath = globals.SLAVE_MOUNT_PREFIX_PATH + nfsmountpath
+
+            #prepend nfs mount path to input and output file
+            input = nfsmountpath + input
+            output = nfsmountpath + output
+
+            print input, " ", output
+
             cursor2.execute("UPDATE Jobs SET Active=%s WHERE UUID=%s AND AssignedServerUUID=%s", (1, jobuuid, _uuid))
             run_job(type, command, commandoptions, input, output)
+
         else:
-            print "Slave server has no connectivity to storage server %s" % row[4]
+            print "Slave server has no connectivity to storage server %s" % storageuuid
     db.close()
     return True
 
@@ -307,7 +328,8 @@ def usage():
     """
     print "\nUsage: slave_server.py: [options]"
     print "-h / --help : help"
-    print "-p [path] / --path [path] : specify temporary storage mount path\n"
+    print "-d [address:{port}] / --database [ip address:{port}] : specify the fflock database"
+    print "-m [path] / --mount [path] : specify temporary storage mount path\n"
 
 
 
@@ -320,7 +342,7 @@ def main(argv):
     """
 
     try:
-        opts, args = getopt.getopt(argv, "hd:p:", ["help", "database=", "path="])
+        opts, args = getopt.getopt(argv, "hd:m:", ["help", "database=", "mount="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -328,13 +350,15 @@ def main(argv):
         if opt in ("-h", "--help"):
             usage()
             sys.exit()
-        elif opt in ("-d", "--database"):
-            utility.DATABASE_HOST = arg.split(':', 1)[0]
-            utility.DATABASE_PORT = arg.split(':', 1)[-1]
-            if utility.DATABASE_PORT == utility.DATABASE_HOST:
-                utility.DATABASE_PORT = 3306
-        elif opt in ("-p", "--path"):
-            path = arg
+        if opt in ("-d", "--database"):
+            globals.DATABASE_HOST = arg.split(':', 1)[0]
+            globals.DATABASE_PORT = arg.split(':', 1)[-1]
+            if globals.DATABASE_PORT == globals.DATABASE_HOST:
+                globals.DATABASE_PORT = 3306
+        if opt in ("-m", "--mount"):
+            globals.SLAVE_MOUNT_PREFIX_PATH = arg
+            if globals.SLAVE_MOUNT_PREFIX_PATH[-1:] == "/":
+                globals.SLAVE_MOUNT_PREFIX_PATH = globals.SLAVE_MOUNT_PREFIX_PATH[:-1]
 
     while True:
         register_slave_server()

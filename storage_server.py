@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import globals
 import time
 import sys
 import os
@@ -17,7 +18,7 @@ def signal_handler(signal, frame):
     @param signal:
     @param frame:
     """
-    #unload()
+    unload()
     sys.exit(0)
 
 
@@ -28,6 +29,7 @@ def unload():
 
     @rtype : object
     """
+    #TODO signal slave to unmount shares when storage server goes down (create job)
     print "\nunloading"
     db = utility.dbconnect()
     cursor = db.cursor()
@@ -63,7 +65,7 @@ def register_storage_server():
             cursor.execute("UPDATE Servers SET LastSeen = %s WHERE LocalIP = %s AND PublicIP = %s AND Type = 'Storage' AND UUID = %s", (timestamp, _localip, _publicip, _uuid))
             server_already_registered = 1
     if server_already_registered == 0:
-        cursor.execute('INSERT INTO Servers(LocalIP,PublicIP, Type, LastSeen, UUID) VALUES(%s,%s,%s,%s,%s)', (_localip, _publicip, 'Storage', timestamp, _uuid))
+        cursor.execute('INSERT INTO Servers(LocalIP,PublicIP, Type, LastSeen, UUID, State) VALUES(%s,%s,%s,%s,%s,%s)', (_localip, _publicip, 'Storage', timestamp, _uuid, 0))
         print "Server successfully registered as a Storage Server running on [L}%s / [P}%s on %s" % (_localip, _publicip, timestamp)
 
     db.commit()
@@ -126,6 +128,7 @@ def check_slave_connectivity():
             connectivity_test_file = nfsmountpath + slaveserveruuid
             connectivity_test_file_confirm = nfsmountpath + storageuuid
             if os.path.isfile(connectivity_test_file):
+                print "Confirming storage connection from slave %s" % slaveserveruuid
                 file = open(connectivity_test_file, "r")
                 line = file.readline()
                 if line == str(storageuuid):
@@ -134,6 +137,7 @@ def check_slave_connectivity():
                     file2.write(slaveserveruuid)
                     file2.close()
                 else:
+                    print "Storage connection from slave %s failed" % slaveserveruuid
                     file.close()
     db.close()
 
@@ -147,7 +151,7 @@ def usage():
     """
     print "\nUsage: storage_server.py: [options]"
     print "-h / --help : help"
-    print "-d [address:port] / --database [ip address:port] : specify the fflock database"
+    print "-d [address:{port}] / --database [ip address:{port}] : specify the fflock database"
     print "-n [path] / --nfs [path] : specify NFS storage path"
     print "-s [path] / --s3 [path] : specify AWS S3 storage path\n"
 
@@ -170,16 +174,16 @@ def main(argv):
         if opt in ("-h", "--help"):
             usage()
             sys.exit()
-        elif opt in ("-d", "--database"):
-            utility.DATABASE_HOST = arg.split(':', 1)[0]
-            utility.DATABASE_PORT = arg.split(':', 1)[-1]
-            if utility.DATABASE_PORT == utility.DATABASE_HOST:
-                utility.DATABASE_PORT = 3306
-        elif opt in ("-n", "--nfs"):
+        if opt in ("-d", "--database"):
+            globals.DATABASE_HOST = arg.split(':', 1)[0]
+            globals.DATABASE_PORT = arg.split(':', 1)[-1]
+            if globals.DATABASE_PORT == globals.DATABASE_HOST:
+                globals.DATABASE_PORT = 3306
+        if opt in ("-n", "--nfs"):
             storage = arg
             if storage[-1:] != "/":
                 storage = storage + "/"
-        elif opt in ("-s", "--s3"):
+        if opt in ("-s", "--s3"):
             storage = arg
 
     while True:

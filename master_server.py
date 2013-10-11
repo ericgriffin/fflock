@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import globals
 import time
 import sys
 from datetime import datetime, timedelta
@@ -43,7 +44,7 @@ def register_master_server(uuid):
     results = cursor.fetchone()
 
     if results is None:
-        cursor.execute('INSERT INTO Servers(LocalIP,PublicIP, Type, LastSeen, UUID) VALUES(%s,%s,%s,%s,%s)', (_localip, _publicip, 'Master', timestamp, uuid))
+        cursor.execute('INSERT INTO Servers(LocalIP,PublicIP, Type, LastSeen, UUID, State) VALUES(%s,%s,%s,%s,%s,%s)', (_localip, _publicip, 'Master', timestamp, uuid, 0))
         print "Server successfully registered as the Master Server running on [L}%s / [P}%s on %s" % (_localip, _publicip, timestamp)
     else:
         if results[0] == _localip and results[1] == _publicip and str(results[3]) == str(uuid):
@@ -71,6 +72,7 @@ def remove_stale_slave_servers():
     @rtype : object
     @return:
     """
+    #TODO remove undeleted storage confirmation files
     db = utility.dbconnect()
     timestamp = datetime.now()
     cursor = db.cursor()
@@ -78,6 +80,7 @@ def remove_stale_slave_servers():
     results = cursor.fetchall()
     for row in results:
         if (timestamp - row[0]) > timedelta(seconds=30):
+            print "Removing stale slave server %s" % row[1]
             cursor.execute("DELETE FROM Servers WHERE Type = 'Slave' AND UUID = %s", (str(row[1])))
             cursor.execute("DELETE FROM Connectivity WHERE SlaveServerUUID = %s", (str(row[1])))
     db.close()
@@ -99,6 +102,7 @@ def remove_stale_storage_servers():
     results = cursor.fetchall()
     for row in results:
         if (timestamp - row[0]) > timedelta(seconds=30):
+            print "Removing stale storage server %s" % row[1]
             cursor2 = db.cursor()
             cursor2.execute("SELECT UUID FROM Storage WHERE ServerUUID = %s", str(row[1]))
             results2 = cursor2.fetchall()
@@ -119,7 +123,8 @@ def usage():
     @rtype : none
     """
     print "\nUsage: master_server.py: [options]"
-    print "-h / --help : help\n"
+    print "-h / --help : help"
+    print "-d [address:{port}] / --database [ip address:{port}] : specify the fflock database\n"
 
 
 
@@ -140,11 +145,11 @@ def main(argv):
         if opt in ("-h", "--help"):
             usage()
             sys.exit()
-        elif opt in ("-d", "--database"):
-            utility.DATABASE_HOST = arg.split(':', 1)[0]
-            utility.DATABASE_PORT = arg.split(':', 1)[-1]
-            if utility.DATABASE_PORT == utility.DATABASE_HOST:
-                utility.DATABASE_PORT = 3306
+        if opt in ("-d", "--database"):
+            globals.DATABASE_HOST = arg.split(':', 1)[0]
+            globals.DATABASE_PORT = arg.split(':', 1)[-1]
+            if globals.DATABASE_PORT == globals.DATABASE_HOST:
+                globals.DATABASE_PORT = 3306
 
     while True:
         register_master_server(_uuid)

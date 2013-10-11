@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import globals
 import MySQLdb
 import socket
 import urllib2
@@ -10,24 +11,16 @@ import subprocess
 from urllib2 import urlopen
 
 
-DATABASE_HOST = ""
-DATABASE_PORT = 3306
-DATABASE_USER = "fflock"
-DATABASE_PASSWD = "fflock"
-DATABASE_NAME = "fflock"
-
-
 
 def dbconnect():
     """
-
 
 
     @rtype : db pointer
     @return:
     """
     try:
-        db = MySQLdb.connect(host=DATABASE_HOST, user=DATABASE_USER, passwd=DATABASE_PASSWD, port=int(DATABASE_PORT), db=DATABASE_NAME)
+        db = MySQLdb.connect(host=globals.DATABASE_HOST, user=globals.DATABASE_USER, passwd=globals.DATABASE_PASSWD, port=int(globals.DATABASE_PORT), db=globals.DATABASE_NAME)
     except MySQLdb.Error, e:
         print "Error %d: %s" % (e.args[0], e.args[1])
         sys.exit(1)
