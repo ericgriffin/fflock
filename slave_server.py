@@ -320,7 +320,7 @@ def main(argv):
     """
 
     try:
-        opts, args = getopt.getopt(argv, "hp:", ["help", "path="])
+        opts, args = getopt.getopt(argv, "hd:p:", ["help", "database=", "path="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -328,6 +328,11 @@ def main(argv):
         if opt in ("-h", "--help"):
             usage()
             sys.exit()
+        elif opt in ("-d", "--database"):
+            utility.DATABASE_HOST = arg.split(':', 1)[0]
+            utility.DATABASE_PORT = arg.split(':', 1)[-1]
+            if utility.DATABASE_PORT == utility.DATABASE_HOST:
+                utility.DATABASE_PORT = 3306
         elif opt in ("-p", "--path"):
             path = arg
 

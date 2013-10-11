@@ -9,11 +9,13 @@ import re
 import subprocess
 from urllib2 import urlopen
 
-DATABASE_HOST = "192.168.206.133"
-DATABASE_USER = "ffmpegcl"
-DATABASE_PASSWD = "ffmpegcl"
-DATABASE_NAME = "FFmpegCL"
+
+DATABASE_HOST = ""
 DATABASE_PORT = 3306
+DATABASE_USER = "fflock"
+DATABASE_PASSWD = "fflock"
+DATABASE_NAME = "fflock"
+
 
 
 def dbconnect():

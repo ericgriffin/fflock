@@ -147,6 +147,7 @@ def usage():
     """
     print "\nUsage: storage_server.py: [options]"
     print "-h / --help : help"
+    print "-d [address:port] / --database [ip address:port] : specify the fflock database"
     print "-n [path] / --nfs [path] : specify NFS storage path"
     print "-s [path] / --s3 [path] : specify AWS S3 storage path\n"
 
@@ -161,7 +162,7 @@ def main(argv):
     storage = ""
 
     try:
-        opts, args = getopt.getopt(argv, "hn:s:", ["help", "nfs=", "s3="])
+        opts, args = getopt.getopt(argv, "hd:n:s:", ["help", "database=", "nfs=", "s3="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -169,8 +170,15 @@ def main(argv):
         if opt in ("-h", "--help"):
             usage()
             sys.exit()
+        elif opt in ("-d", "--database"):
+            utility.DATABASE_HOST = arg.split(':', 1)[0]
+            utility.DATABASE_PORT = arg.split(':', 1)[-1]
+            if utility.DATABASE_PORT == utility.DATABASE_HOST:
+                utility.DATABASE_PORT = 3306
         elif opt in ("-n", "--nfs"):
             storage = arg
+            if storage[-1:] != "/":
+                storage = storage + "/"
         elif opt in ("-s", "--s3"):
             storage = arg
 
@@ -186,4 +194,5 @@ if __name__ == "__main__":
     _uuid = utility.get_uuid()
     _localip = utility.local_ip_address()
     _publicip = utility.public_ip_address()
+
     main(sys.argv[1:])
