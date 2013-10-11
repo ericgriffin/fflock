@@ -30,29 +30,28 @@ def unload():
     """
     print "\nunloading"
     db = utility.dbconnect()
-    cursor = db.cursor()
-    cursor.execute("SELECT SlaveServerUUID, StorageUUID, IPType, Connected FROM Connectivity WHERE SlaveServerUUID=%s", _uuid)
-    results = cursor.fetchall()
+    connectivitycursor = db.cursor()
+    connectivitycursor.execute("SELECT SlaveServerUUID, StorageUUID, IPType, Connected FROM Connectivity WHERE SlaveServerUUID=%s", _uuid)
+    connectivityresults = connectivitycursor.fetchall()
     nfsmount = "-1"
-    for row in results:
-        cursor2 = db.cursor()
-        #TODO refactor so only 1 sql query
-        if row[2] == "Local" and row[3] == 1:
-            cursor2.execute("SELECT LocalPathNFS FROM Storage WHERE UUID=%s", row[1])
-            results2 = cursor2.fetchone()
-            nfsmount = results2[0]
-        elif row[2] == "Public" and row[3] == 1:
-            cursor2.execute("SELECT PublicPathNFS FROM Storage WHERE UUID=%s", row[1])
-            results2 = cursor2.fetchone()
-            nfsmount = results2[0]
+    for connectivityrow in connectivityresults:
+        storagecursor = db.cursor()
+
+        storagecursor.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID=%s", connectivityrow[1])
+        storageresults = storagecursor.fetchone()
+        if connectivityrow[2] == "Local" and connectivityrow[3] == 1:
+            nfsmount = storageresults[0]
+        elif connectivityrow[2] == "Public" and connectivityrow[3] == 1:
+            nfsmount = storageresults[1]
+
         nfsmountpath = nfsmount.split(':', 1)[-1]
         nfsmountpath = globals.SLAVE_MOUNT_PREFIX_PATH + nfsmountpath
         unmountnfsshare = "umount -l %s" % nfsmountpath
         if os.path.ismount(nfsmountpath):
             print "Un-mounting NFS share ", nfsmountpath
             Popen(unmountnfsshare, shell=True)
-    cursor.execute("DELETE FROM Servers WHERE Type = 'Slave' AND UUID = %s", (str(_uuid)))
-    cursor.execute("DELETE FROM Connectivity WHERE SlaveServerUUID = %s", (str(_uuid)))
+    connectivitycursor.execute("DELETE FROM Servers WHERE ServerType = 'Slave' AND UUID = %s", (str(_uuid)))
+    connectivitycursor.execute("DELETE FROM Connectivity WHERE SlaveServerUUID = %s", (str(_uuid)))
     db.close()
 
 
@@ -68,7 +67,7 @@ def register_slave_server():
     timestamp = datetime.now()
 
     cursor = db.cursor()
-    cursor.execute("SELECT LocalIP, PublicIP, LastSeen, UUID FROM Servers WHERE Type = 'Slave'")
+    cursor.execute("SELECT LocalIP, PublicIP, LastSeen, UUID FROM Servers WHERE ServerType = 'Slave'")
     results = cursor.fetchall()
 
     server_already_registered = 0
@@ -76,10 +75,10 @@ def register_slave_server():
     for row in results:
         if row[0] == _localip and row[1] == _publicip and str(row[3]) == str(_uuid):
             print "Registering Slave Server %s heartbeat at %s" % (_uuid, timestamp)
-            cursor.execute("UPDATE Servers SET LastSeen = %s WHERE LocalIP = %s AND PublicIP = %s AND Type = 'Slave' AND UUID = %s", (timestamp, _localip, _publicip, _uuid))
+            cursor.execute("UPDATE Servers SET LastSeen = %s WHERE LocalIP = %s AND PublicIP = %s AND ServerType = 'Slave' AND UUID = %s", (timestamp, _localip, _publicip, _uuid))
             server_already_registered = 1
     if server_already_registered == 0:
-        cursor.execute('INSERT INTO Servers(LocalIP, PublicIP, Type, LastSeen, UUID, State) VALUES(%s,%s,%s,%s,%s,%s)', (_localip, _publicip, 'Slave', timestamp, _uuid, 0))
+        cursor.execute('INSERT INTO Servers(LocalIP, PublicIP, ServerType, LastSeen, UUID, State) VALUES(%s,%s,%s,%s,%s,%s)', (_localip, _publicip, 'Slave', timestamp, _uuid, 0))
         print "Server successfully registered as a Slave Server running on [L}%s / [P}%s on %s" % (_localip, _publicip, timestamp)
 
     db.commit()
@@ -118,13 +117,11 @@ def calculate_connectivity():
 
         if latency != -1:
             cursor2 = db.cursor()
-            #TODO add WHERE clause to remove if statement below
-            cursor2.execute("SELECT SlaveServerUUID, StorageUUID FROM Connectivity")
+            cursor2.execute("SELECT SlaveServerUUID, StorageUUID FROM Connectivity WHERE SlaveServerUUID = %s AND StorageUUID = %s", (_uuid, row[0]))
             results2 = cursor2.fetchall()
             for row2 in results2:
-                if(str(row2[0]) == str(_uuid) and str(row2[1]) == str(row[0])):
-                    cursor.execute("UPDATE Connectivity SET Latency = %s, IPType = %s WHERE SlaveServerUUID = %s AND StorageUUID = %s", (latency, iptype, _uuid, row[0]))
-                    connection_already_exists = 1
+                cursor.execute("UPDATE Connectivity SET Latency = %s, IPType = %s WHERE SlaveServerUUID = %s AND StorageUUID = %s", (latency, iptype, _uuid, row[0]))
+                connection_already_exists = 1
             if connection_already_exists == 0:
                 print "Adding connectivity information between slave %s and storage %s" % (_uuid, row[0])
                 cursor.execute('INSERT INTO Connectivity(SlaveServerUUID, StorageUUID, Latency, IPType, Connected) VALUES(%s,%s,%s,%s,%s)', (_uuid, row[0], localserverlatency, iptype, 0))
@@ -142,28 +139,25 @@ def mount_storage():
     @rtype : boolean
     """
     db = utility.dbconnect()
-    cursor = db.cursor()
-    cursor.execute("SELECT SlaveServerUUID, StorageUUID, IPType, Connected FROM Connectivity WHERE SlaveServerUUID=%s", _uuid)
-    results = cursor.fetchall()
+    connectivitycursor = db.cursor()
+    connectivitycursor.execute("SELECT SlaveServerUUID, StorageUUID, IPType, Connected FROM Connectivity WHERE SlaveServerUUID=%s", _uuid)
+    connectivityresults = connectivitycursor.fetchall()
 
-    for row in results:
-        slaveserveruuid = row[0]
-        storageuuid = row[1]
-        iptype = row[2]
-        connected = row[3]
+    for connectivityrow in connectivityresults:
+        storageuuid = connectivityrow[1]
+        iptype = connectivityrow[2]
+        connected = connectivityrow[3]
 
-        cursor2 = db.cursor()
+        storagecursor = db.cursor()
         nfsmount = "-1"
 
-        #TODO refactor if and sql queries below to have only 1 sql query
+        storagecursor.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID=%s", storageuuid)
+        storageresults = storagecursor.fetchone()
         if iptype == "Local":
-            cursor2.execute("SELECT LocalPathNFS FROM Storage WHERE UUID=%s", storageuuid)
-            results2 = cursor2.fetchone()
-            nfsmount = results2[0]
+            nfsmount = storageresults[0]
         elif iptype == "Public":
-            cursor2.execute("SELECT PublicPathNFS FROM Storage WHERE UUID=%s", storageuuid)
-            results2 = cursor2.fetchone()
-            nfsmount = results2[0]
+            nfsmount = storageresults[1]
+
         if nfsmount != "-1":
             nfsmountpath = nfsmount.split(':', 1)[-1]
             nfsmountpath = globals.SLAVE_MOUNT_PREFIX_PATH + nfsmountpath
@@ -257,70 +251,76 @@ def fetch_jobs():
     """
     db = utility.dbconnect()
     cursor = db.cursor()
-    cursor.execute("SELECT UUID, Type, Command, CommandOptions, Input, Output, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, Active, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = %s AND Assigned = %s AND Active = %s", (_uuid, 1, 0))
+    cursor.execute("SELECT UUID, JobType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, Active, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = %s AND Assigned = %s AND Active = %s", (_uuid, 1, 0))
     results = cursor.fetchall()
     for row in results:
         jobuuid = row[0]
-        type = row[1]
+        jobtype = row[1]
         command = row[2]
         commandoptions = row[3]
-        input = row[4]
-        output = row[5]
+        jobinput = row[4]
+        joboutput = row[5]
         storageuuid = row[6]
 
-        connected_type = check_storage_connected(storageuuid)
+        #check to see if this slave server is busy
+        serverstatecursor = db.cursor()
+        serverstatecursor.execute("SELECT UUID, State FROM Servers WHERE UUID = %s", _uuid)
+        serverstateresults = serverstatecursor.fetchone()
+        #if this server is not busy then fetch next job
+        if serverstateresults[1] == 0:
+            connected_type = check_storage_connected(storageuuid)
 
-        if connected_type != "No":
-            nfsmountpath = ""
-            cursor2 = db.cursor()
-            cursor2.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID = %s", storageuuid)
-            result2 = cursor2.fetchone()
+            if connected_type != "No":
+                nfsmountpath = ""
+                cursor2 = db.cursor()
+                cursor2.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID = %s", storageuuid)
+                result2 = cursor2.fetchone()
 
-            if connected_type == "Local":
-                print "Running job %s from storage %s over Local network" % (jobuuid, storageuuid)
-                print result2[0]
-                nfsmountpath = result2[0].split(':', 1)[-1]
-            if connected_type == "Public":
-                print "Running job %s from storage %s over Public network" % (jobuuid, storageuuid)
-                nfsmountpath = result2[1].split(':', 1)[-1]
+                if connected_type == "Local":
+                    print "Running job %s from storage %s over Local network" % (jobuuid, storageuuid)
+                    print result2[0]
+                    nfsmountpath = result2[0].split(':', 1)[-1]
+                if connected_type == "Public":
+                    print "Running job %s from storage %s over Public network" % (jobuuid, storageuuid)
+                    nfsmountpath = result2[1].split(':', 1)[-1]
 
-            nfsmountpath = globals.SLAVE_MOUNT_PREFIX_PATH + nfsmountpath
+                nfsmountpath = globals.SLAVE_MOUNT_PREFIX_PATH + nfsmountpath
 
-            #prepend nfs mount path to input and output file
-            input = nfsmountpath + input
-            output = nfsmountpath + output
+                #prepend nfs mount path to input and output file
+                jobinput = nfsmountpath + jobinput
+                joboutput = nfsmountpath + joboutput
 
-            print input, " ", output
+                print jobinput, " ", joboutput
 
-            cursor2.execute("UPDATE Jobs SET Active=%s WHERE UUID=%s AND AssignedServerUUID=%s", (1, jobuuid, _uuid))
-            run_job(type, command, commandoptions, input, output)
+                cursor2.execute("UPDATE Jobs SET Active=%s WHERE UUID=%s AND AssignedServerUUID=%s", (1, jobuuid, _uuid))
+                cursor2.execute("UPDATE Servers SET State=%s WHERE UUID=%s", (1, _uuid))
+                run_job(jobtype, command, commandoptions, jobinput, joboutput)
 
-        else:
-            print "Slave server has no connectivity to storage server %s" % storageuuid
+            else:
+                print "Slave server has no connectivity to storage server %s" % storageuuid
     db.close()
     return True
 
 
-def run_job(type, command, commandoptions, input, output):
+def run_job(jobtype, command, commandoptions, jobinput, joboutput):
     """
 
 
     @rtype : boolean
-    @param type:
+    @param jobtype:
     @param command:
     @param commandoptions:
     @param input:
     @param output:
     @return:
     """
-    jobcommand = command % (commandoptions, input, output)
+    jobcommand = command % (commandoptions, jobinput, joboutput)
     print jobcommand
-    Popen(jobcommand, shell=True)
+    Popen(jobcommand, shell=True, stdout=PIPE)
     return True
 
 
 def usage():
-    #TODO usage
     """
 
 
