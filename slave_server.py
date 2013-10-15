@@ -9,6 +9,10 @@ from subprocess import PIPE, Popen
 import signal
 import sys
 import getopt
+from re import search
+
+
+from ffmpeg_encoder import *
 
 
 def signal_handler(signal, frame):
@@ -202,7 +206,7 @@ def check_nfs_connectivity(nfsmountpath, storageuuid):
     testfile = open(filename, "w")
     testfile.write(storageuuid)
     testfile.close()
-    time.sleep(10)
+    time.sleep(5)
     # check for confirmation file
     if os.path.exists(filename_confirm):
         testfileconfirm = open(filename_confirm, "r")
@@ -251,7 +255,7 @@ def fetch_jobs():
     """
     db = utility.dbconnect()
     cursor = db.cursor()
-    cursor.execute("SELECT UUID, JobType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, Active, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = %s AND Assigned = %s AND Active = %s", (_uuid, 1, 0))
+    cursor.execute("SELECT UUID, JobType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = %s AND Assigned = %s AND State = %s", (_uuid, 1, 0))
     results = cursor.fetchall()
     for row in results:
         jobuuid = row[0]
@@ -262,14 +266,16 @@ def fetch_jobs():
         joboutput = row[5]
         storageuuid = row[6]
 
-        #check to see if this slave server is busy
+        # check to see if this slave server is busy
         serverstatecursor = db.cursor()
         serverstatecursor.execute("SELECT UUID, State FROM Servers WHERE UUID = %s", _uuid)
         serverstateresults = serverstatecursor.fetchone()
-        #if this server is not busy then fetch next job
+        # if this server is not busy then fetch next job
         if serverstateresults[1] == 0:
+            # see if this server is connected to the storage
             connected_type = check_storage_connected(storageuuid)
 
+            # if slave server is connected to the storage
             if connected_type != "No":
                 nfsmountpath = ""
                 cursor2 = db.cursor()
@@ -286,15 +292,20 @@ def fetch_jobs():
 
                 nfsmountpath = globals.SLAVE_MOUNT_PREFIX_PATH + nfsmountpath
 
-                #prepend nfs mount path to input and output file
+                # prepend nfs mount path to input and output file
                 jobinput = nfsmountpath + jobinput
                 joboutput = nfsmountpath + joboutput
 
                 print jobinput, " ", joboutput
 
-                cursor2.execute("UPDATE Jobs SET Active=%s WHERE UUID=%s AND AssignedServerUUID=%s", (1, jobuuid, _uuid))
+                # set server as busy and job as active
+                cursor2.execute("UPDATE Jobs SET State=%s WHERE UUID=%s AND AssignedServerUUID=%s", (1, jobuuid, _uuid))
                 cursor2.execute("UPDATE Servers SET State=%s WHERE UUID=%s", (1, _uuid))
-                run_job(jobtype, command, commandoptions, jobinput, joboutput)
+                # run the job
+                run_job(jobuuid, jobtype, command, commandoptions, jobinput, joboutput)
+                # set server as free and job as finished
+                cursor2.execute("UPDATE Jobs SET State=%s WHERE UUID=%s AND AssignedServerUUID=%s", (2, jobuuid, _uuid))
+                cursor2.execute("UPDATE Servers SET State=%s WHERE UUID=%s", (0, _uuid))
 
             else:
                 print "Slave server has no connectivity to storage server %s" % storageuuid
@@ -302,10 +313,13 @@ def fetch_jobs():
     return True
 
 
-def run_job(jobtype, command, commandoptions, jobinput, joboutput):
+def run_job(jobuuid, jobtype, command, commandoptions, jobinput, joboutput):
     """
 
 
+
+    @param jobinput:
+    @param joboutput:
     @rtype : boolean
     @param jobtype:
     @param command:
@@ -314,9 +328,47 @@ def run_job(jobtype, command, commandoptions, jobinput, joboutput):
     @param output:
     @return:
     """
-    jobcommand = command % (commandoptions, jobinput, joboutput)
-    print jobcommand
-    Popen(jobcommand, shell=True, stdout=PIPE)
+    db = utility.dbconnect()
+    cursor = db.cursor()
+
+    if command[0:6] == "ffmpeg":
+        jobtype = "ffmpeg"
+
+    # if ffmpeg job
+    if jobtype == "ffmpeg":
+        encoder = ffmpegencoder(jobinput, joboutput, commandoptions, True)
+        encoder.start()
+        shouldUpdate = False
+
+        while encoder.getProgress() != 100 or shouldUpdate:
+            utility.clear()
+            # keep the server alive so it doesn't get removed by master
+            register_slave_server()
+            print "Args: %s\nProgress: %s complete\nElapsed: %s seconds\nEta: %s seconds" % (encoder.getArgs(), encoder.getProgress(), encoder.getElapsedTime(), encoder.getEta())
+            cursor.execute("UPDATE Jobs SET Progress=%s WHERE UUID=%s AND AssignedServerUUID=%s", (encoder.getProgress(), jobuuid, _uuid))
+            time.sleep(3)
+
+            #allows looping to 100%
+            if shouldUpdate == True:
+                break
+            shouldUpdate = (encoder.getProgress() == 100)
+
+        print "FFmpeg finished with return code: %s" % (encoder.getReturnCode())
+        if encoder.getReturnCode() == 0:
+            print "Encode took %s seconds" % (encoder.getElapsedTime())
+            print "Encoded at %s x realtime" % (float(encoder.getInputDuration())/float(encoder.getElapsedTime()))
+        else:
+            print "An error has occured: {}".format(encoder.getLastOutput())
+
+    # generic slave job
+    else:
+        jobcommand = command % (commandoptions, jobinput, joboutput)
+        proc = Popen(jobcommand, shell=True, stdout=PIPE)
+
+        while proc.poll() is None:
+            time.sleep(3)
+            register_slave_server()
+        print proc.returncode
     return True
 
 

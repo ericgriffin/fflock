@@ -41,7 +41,7 @@ def find_server_for_slave_job():
         current_queue = 0
         slaveserveruuid = slaverow[0]
         jobcursor = db.cursor()
-        jobcursor.execute("SELECT JobType, Assigned, Active, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = %s", str(slaveserveruuid))
+        jobcursor.execute("SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = %s", str(slaveserveruuid))
         jobresults = jobcursor.fetchall()
         for jobrow in jobresults:
             current_queue += 1
@@ -94,7 +94,7 @@ def submit_job(jobtype, command, commandoptions, input, output):
     jobuuid = utility.get_uuid()
     jobinputcursor = db.cursor()
     jobinputcursor.execute(
-        "INSERT INTO Jobs(UUID, JobType, Command, CommandOptions, JobInput, JobOutput, Assigned, Active, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        "INSERT INTO Jobs(UUID, JobType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (jobuuid, jobtype, command, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid, "0", 1, dependencies, 0, _timestamp, _timestamp))
     db.close()
     return True
@@ -122,14 +122,14 @@ def main(argv):
                 globals.DATABASE_PORT = 3306
 
     jobtype = "Slave"
-    command = "yes | ffmpeg %s -i %s %s"
-    commandoptions = ""
+    command = "ffmpeg %s -i %s %s"
+    commandoptions = " "
     input = "test.mov"
     output = "Final.mp4"
 
-    #submit_job(jobtype, command, commandoptions, input, output)
-    #submit_job("Slave", "yes | ffmpeg %s -i %s %s", "", "1.mp4", "Final1.avi")
-    submit_job("Slave", "yes | ffmpeg %s -i %s %s", "", "test.mov", "Final.mp4")
+    submit_job(jobtype, command, commandoptions, input, output)
+    submit_job("Slave", "ffmpeg %s -i %s %s", " ", "1.mp4", "Final1.avi")
+    submit_job("Slave", "ffmpeg %s -i %s %s", " ", "test.mov", "Final.mp4")
 
 
 if __name__ == "__main__":

@@ -5,11 +5,13 @@ import MySQLdb
 import socket
 import urllib2
 import sys
+import os
 import uuid
 import re
 import subprocess
+from subprocess import PIPE, Popen
+from re import search
 from urllib2 import urlopen
-
 
 
 def dbconnect():
@@ -68,7 +70,7 @@ def ping(address):
     @return: retval - latency determined by ping
     """
     try:
-        ping_output = subprocess.Popen(["ping", "-n", "-c 2", address], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ping_output = subprocess.Popen(["ping", "-n", "-c 3", address], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, error = ping_output.communicate()
         if out:
             try:
@@ -88,6 +90,10 @@ def ping(address):
     return retval
 
 
+def clear():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+
 def get_uuid():
     """
 
@@ -97,3 +103,32 @@ def get_uuid():
     @return:
     """
     return uuid.uuid1()
+
+
+def getFps(file):
+    """
+
+
+    @rtype : integer
+    @param file:
+    @return:
+    """
+    information = Popen(("ffmpeg", "-i", file), stdout=PIPE, stderr=PIPE)
+    #fetching tbr (1), but can also get tbn (2) or tbc (3)
+    #examples of fps syntax encountered is 30, 30.00, 30k
+    fpsSearch = search("(\d+\.?\w*) tbr, (\d+\.?\w*) tbn, (\d+\.?\w*) tbc", information.communicate()[1])
+    return fpsSearch.group(1)
+
+
+def getTotalFrames(file, fps):
+    """
+
+
+    @rtype : integer
+    @param file:
+    @param fps:
+    @return:
+    """
+    information = Popen(("ffmpeg", "-i", file), stdout=PIPE, stderr=PIPE)
+    timecode = search("(\d+):(\d+):(\d+)\.(\d+)", information.communicate()[1])
+    return ((((float(timecode.group(1)) * 60) + float(timecode.group(2))) * 60) + float(timecode.group(3)) + float(timecode.group(4))/100) * float(fps)
