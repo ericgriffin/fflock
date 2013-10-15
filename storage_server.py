@@ -201,8 +201,6 @@ def fetch_jobs():
             # set server as free and job as finished
             cursor2.execute("UPDATE Jobs SET State=%s WHERE UUID=%s AND AssignedServerUUID=%s", (2, jobuuid, _uuid))
             cursor2.execute("UPDATE Servers SET State=%s WHERE UUID=%s", (0, _uuid))
-            if jobsubtype == "merge":
-                cursor2.execute("DELETE FROM Jobs WHERE UUID=%s", jobuuid)
 
     db.close()
     return True
@@ -245,16 +243,21 @@ def job_cleanup():
     """
     db = utility.dbconnect()
     jobcursor = db.cursor()
+    deletecursor = db.cursor()
     jobcursor.execute("SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = %s AND Assigned = %s AND State = %s", (_uuid, 1, 2))
     jobresults = jobcursor.fetchall()
     for jobrow in jobresults:
+        jobuuid = jobrow[0]
         jobtype = jobrow[1]
+        jobsubtype = jobrow[2]
         joboutput = jobrow[6]
         storageuuid = jobrow[7]
-        if jobtype == "merge":
-            todelete = get_storage_nfs_folder_path(storageuuid) + joboutput + "_*"
+        if jobtype == "Storage" and jobsubtype == "merge":
+            todelete = utility.get_storage_nfs_folder_path(storageuuid) + joboutput + "_*"
             for file in glob.glob(todelete):
                 os.remove(file)
+            deletecursor.execute("DELETE FROM Jobs WHERE UUID=%s", jobuuid)
+    db.close()
     return True
 
 
