@@ -3,6 +3,7 @@
 import globals
 import time
 import sys
+import os
 from datetime import datetime, timedelta
 import utility
 import signal
@@ -114,6 +115,150 @@ def remove_stale_storage_servers():
     return True
 
 
+def split_transcode_jobs():
+    """
+
+
+
+    @rtype : boolean
+    """
+    db = utility.dbconnect()
+    timestamp = datetime.now()
+    number_of_slaves = find_number_of_registered_slaves()
+    jobcursor = db.cursor()
+    jobcursor.execute("SELECT UUID, JobType, JobSubType, Command, JobInput, JobOutput, Assigned, State, AssignedServerUUID, Priority, Dependencies, MasterUUID, Progress, ResultValue1, ResultValue2 FROM Jobs WHERE State = %s AND JobSubType = %s", (2, "frames"))
+    jobresults = jobcursor.fetchall()
+
+    for jobrow in jobresults:
+        deletecursor = db.cursor()
+        deletecursor.execute("DELETE FROM Jobs WHERE UUID = %s", jobrow[0])
+
+        jobuuid = jobrow[0]
+        jobinput = jobrow[4]
+        joboutput = jobrow[5]
+        totalframes = jobrow[13]
+        fps = jobrow[14]
+        num_slaves = find_number_of_registered_slaves()
+        duration_per_job = float(totalframes) / float(fps) / int(num_slaves)
+        start = 0.0
+        end = duration_per_job
+        for num in range(0, num_slaves):
+            print "Splitting Job ", jobuuid, " into part ", num
+            outfilename, outfileextension = os.path.splitext(joboutput)
+            ffmpeg_startstop = "-ss %f -t %f -y" % (start, end)
+            submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", ffmpeg_startstop, jobinput, joboutput + "_part" + str(num) + outfileextension)
+            start += end + 1/float(fps)
+
+
+def find_storage_UUID_for_job():
+    """
+
+
+
+    @rtype : storage uuid
+    @return:
+    """
+    storageuuid = ""
+    db = utility.dbconnect()
+    storagecursor = db.cursor()
+    storagecursor.execute("SELECT UUID FROM Storage WHERE StorageType = %s", ("NFS"))
+    storageresults = storagecursor.fetchall()
+    for storagerow in storageresults:
+        storageuuid = storagerow[0]
+    return storageuuid
+
+
+def find_server_for_storage_job():
+    """
+
+
+
+    @rtype : storage server uuid
+    @return:
+    """
+    return ""
+
+
+def find_server_for_slave_job():
+    """
+
+
+
+    @rtype : slave server uuid
+    @return:
+    """
+    slaveserveruuid = "NA"
+    db = utility.dbconnect()
+    slavecursor = db.cursor()
+    slavecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = %s OR ServerType = %s", ("Slave","Length"))
+    slaveresults = slavecursor.fetchall()
+
+    #find best slave server to assign the job
+    shortest_queue = 1000000
+    server_with_shortest_queue = ""
+    for slaverow in slaveresults:
+        current_queue = 0
+        slaveserveruuid = slaverow[0]
+        jobcursor = db.cursor()
+        jobcursor.execute("SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = %s", str(slaveserveruuid))
+        jobresults = jobcursor.fetchall()
+        for jobrow in jobresults:
+            current_queue += 1
+        if current_queue < shortest_queue:
+            server_with_shortest_queue = slaveserveruuid
+            shortest_queue = current_queue
+    return server_with_shortest_queue
+
+
+def find_number_of_registered_slaves():
+    """
+
+
+    @rtype : integer
+    @return:
+    """
+    number_of_slaves = 0
+    db = utility.dbconnect()
+    slavecursor = db.cursor()
+    slavecursor.execute("SELECT ServerType FROM Servers WHERE ServerType = %s", "Slave")
+    slaveresults = slavecursor.fetchall()
+    for slaverow in slaveresults:
+        number_of_slaves = number_of_slaves + 1
+    return number_of_slaves
+
+
+def submit_job(jobtype, jobsubtype, command, commandoptions, input, output):
+    """
+
+
+    @rtype : boolean
+    @param jobtype:
+    @param command:
+    @param commandoptions:
+    @param input:
+    @param output:
+    """
+    dependencies = ""
+    db = utility.dbconnect()
+    timestamp = datetime.now()
+
+
+    storageuuid = find_storage_UUID_for_job()
+    assignedserveruuid = "NA"
+    if jobtype == "Slave":
+        assignedserveruuid = find_server_for_slave_job()
+    elif jobtype == "Storage":
+        assignedserveruuid = find_server_for_storage_job()
+
+    jobuuid = utility.get_uuid()
+    jobinputcursor = db.cursor()
+    jobinputcursor.execute(
+        "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid, "0", 1, dependencies, 0, timestamp, timestamp, "", ""))
+    db.close()
+    return True
+
+
 def usage():
     """
 
@@ -154,6 +299,7 @@ def main(argv):
         register_master_server(_uuid)
         remove_stale_slave_servers()
         remove_stale_storage_servers()
+        split_transcode_jobs()
         time.sleep(5)
 
 

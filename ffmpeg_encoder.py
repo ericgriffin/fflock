@@ -18,7 +18,7 @@ class ffmpegencoder(threading.Thread):
         self.progress = 0
         #build args string
         strOverwrite = ["-n", "-y"][int(overwrite)]
-        self.args = "ffmpeg %s %s -analyzeduration 1000000 -i %s %s %s" % (strOverwrite, extraArgs, inpath, codecSettings, outpath)
+        self.args = "ffmpeg %s %s -analyzeduration 1000000 -i %s %s %s" % (strOverwrite, codecSettings, inpath, extraArgs, outpath)
         print self.args
 
 

@@ -255,16 +255,17 @@ def fetch_jobs():
     """
     db = utility.dbconnect()
     cursor = db.cursor()
-    cursor.execute("SELECT UUID, JobType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = %s AND Assigned = %s AND State = %s", (_uuid, 1, 0))
+    cursor.execute("SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = %s AND Assigned = %s AND State = %s", (_uuid, 1, 0))
     results = cursor.fetchall()
     for row in results:
         jobuuid = row[0]
         jobtype = row[1]
-        command = row[2]
-        commandoptions = row[3]
-        jobinput = row[4]
-        joboutput = row[5]
-        storageuuid = row[6]
+        jobsubtype = row[2]
+        command = row[3]
+        commandoptions = row[4]
+        jobinput = row[5]
+        joboutput = row[6]
+        storageuuid = row[7]
 
         # check to see if this slave server is busy
         serverstatecursor = db.cursor()
@@ -302,7 +303,7 @@ def fetch_jobs():
                 cursor2.execute("UPDATE Jobs SET State=%s WHERE UUID=%s AND AssignedServerUUID=%s", (1, jobuuid, _uuid))
                 cursor2.execute("UPDATE Servers SET State=%s WHERE UUID=%s", (1, _uuid))
                 # run the job
-                run_job(jobuuid, jobtype, command, commandoptions, jobinput, joboutput)
+                run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput)
                 # set server as free and job as finished
                 cursor2.execute("UPDATE Jobs SET State=%s WHERE UUID=%s AND AssignedServerUUID=%s", (2, jobuuid, _uuid))
                 cursor2.execute("UPDATE Servers SET State=%s WHERE UUID=%s", (0, _uuid))
@@ -313,7 +314,7 @@ def fetch_jobs():
     return True
 
 
-def run_job(jobuuid, jobtype, command, commandoptions, jobinput, joboutput):
+def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput):
     """
 
 
@@ -331,11 +332,8 @@ def run_job(jobuuid, jobtype, command, commandoptions, jobinput, joboutput):
     db = utility.dbconnect()
     cursor = db.cursor()
 
-    if command[0:6] == "ffmpeg":
-        jobtype = "ffmpeg"
-
     # if ffmpeg job
-    if jobtype == "ffmpeg":
+    if jobsubtype == "transcode":
         encoder = ffmpegencoder(jobinput, joboutput, commandoptions, True)
         encoder.start()
         shouldUpdate = False
@@ -358,7 +356,13 @@ def run_job(jobuuid, jobtype, command, commandoptions, jobinput, joboutput):
             print "Encode took %s seconds" % (encoder.getElapsedTime())
             print "Encoded at %s x realtime" % (float(encoder.getInputDuration())/float(encoder.getElapsedTime()))
         else:
-            print "An error has occured: {}".format(encoder.getLastOutput())
+            print "An error has occured: %s" % (encoder.getLastOutput())
+
+    elif jobsubtype == "frames":
+        fps = utility.getFps(jobinput)
+        totalframes = utility.getTotalFrames(jobinput, fps)
+        cursor.execute("UPDATE Jobs SET Progress=%s, ResultValue1=%s, ResultValue2=%s WHERE UUID=%s AND AssignedServerUUID=%s", (100, str(totalframes), str(fps), jobuuid, _uuid))
+
 
     # generic slave job
     else:
