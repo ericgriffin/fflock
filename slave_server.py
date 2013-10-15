@@ -207,7 +207,7 @@ def check_nfs_connectivity(nfsmountpath, storageuuid):
     testfile = open(filename, "w")
     testfile.write(storageuuid)
     testfile.close()
-    time.sleep(5)
+    time.sleep(20)
     # check for confirmation file
     if os.path.exists(filename_confirm):
         testfileconfirm = open(filename_confirm, "r")
