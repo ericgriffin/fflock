@@ -41,7 +41,7 @@ def unload():
     for connectivityrow in connectivityresults:
         storagecursor = db.cursor()
 
-        storagecursor.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID=%s", connectivityrow[1])
+        storagecursor.execute("SELECT LocalPathNFS, PublicPathNFS, UUID FROM Storage WHERE UUID=%s", connectivityrow[1])
         storageresults = storagecursor.fetchone()
         if connectivityrow[2] == "Local" and connectivityrow[3] == 1:
             nfsmount = storageresults[0]
@@ -157,10 +157,11 @@ def mount_storage():
 
         storagecursor.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID=%s", storageuuid)
         storageresults = storagecursor.fetchone()
-        if iptype == "Local":
-            nfsmount = storageresults[0]
-        elif iptype == "Public":
-            nfsmount = storageresults[1]
+        if storageresults is not None:
+            if iptype == "Local":
+                nfsmount = storageresults[0]
+            elif iptype == "Public":
+                nfsmount = storageresults[1]
 
         if nfsmount != "-1":
             nfsmountpath = nfsmount.split(':', 1)[-1]

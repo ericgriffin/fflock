@@ -48,7 +48,7 @@ def register_master_server(uuid):
     timestamp = datetime.now()
 
     cursor = db.cursor()
-    cursor.execute("SELECT LocalIP, PublicIP, LastSeen, UUID FROM Servers WHERE ServerType = 'Master'")
+    cursor.execute("SELECT LocalIP, PublicIP, LastSeen, UUID, ServerType FROM Servers WHERE ServerType = 'Master'")
     results = cursor.fetchone()
 
     if results is None:
@@ -84,7 +84,7 @@ def remove_stale_slave_servers():
     db = utility.dbconnect()
     timestamp = datetime.now()
     cursor = db.cursor()
-    cursor.execute("SELECT LastSeen, UUID FROM Servers WHERE ServerType = 'Slave'")
+    cursor.execute("SELECT LastSeen, UUID, ServerType FROM Servers WHERE ServerType = 'Slave'")
     results = cursor.fetchall()
     for row in results:
         if (timestamp - row[0]) > timedelta(seconds=30):
@@ -106,13 +106,13 @@ def remove_stale_storage_servers():
     db = utility.dbconnect()
     timestamp = datetime.now()
     cursor = db.cursor()
-    cursor.execute("SELECT LastSeen, UUID FROM Servers WHERE ServerType = 'Storage'")
+    cursor.execute("SELECT LastSeen, UUID, ServerType FROM Servers WHERE ServerType = 'Storage'")
     results = cursor.fetchall()
     for row in results:
         if (timestamp - row[0]) > timedelta(seconds=30):
             print "Removing stale storage server %s" % row[1]
             cursor2 = db.cursor()
-            cursor2.execute("SELECT UUID FROM Storage WHERE ServerUUID = %s", str(row[1]))
+            cursor2.execute("SELECT UUID, ServerUUID FROM Storage WHERE ServerUUID = %s", str(row[1]))
             results2 = cursor2.fetchall()
             for row2 in results2:
                 cursor.execute("DELETE FROM Connectivity WHERE StorageUUID = %s", (str(row2[0])))
@@ -132,7 +132,7 @@ def split_transcode_jobs():
     db = utility.dbconnect()
     timestamp = datetime.now()
     jobcursor = db.cursor()
-    jobcursor.execute("SELECT UUID, JobType, JobSubType, Command, JobInput, JobOutput, Assigned, State, AssignedServerUUID, Priority, Dependencies, MasterUUID, Progress, ResultValue1, ResultValue2 FROM Jobs WHERE State = %s AND JobSubType = %s", (2, "frames"))
+    jobcursor.execute("SELECT UUID, JobType, JobSubType, Command, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, Priority, Dependencies, MasterUUID, Progress, ResultValue1, ResultValue2 FROM Jobs WHERE State = %s AND JobSubType = %s", (2, "frames"))
     jobresults = jobcursor.fetchall()
 
     for jobrow in jobresults:
@@ -142,9 +142,10 @@ def split_transcode_jobs():
         jobuuid = jobrow[0]
         jobinput = jobrow[4]
         joboutput = jobrow[5]
-        masteruuid = jobrow[11]
-        totalframes = jobrow[13]
-        fps = jobrow[14]
+        storageuuid = jobrow[9]
+        masteruuid = jobrow[12]
+        totalframes = jobrow[14]
+        fps = jobrow[15]
 
         # determine how many active slaves exist
         num_slaves = number_of_registered_slaves()
@@ -153,6 +154,8 @@ def split_transcode_jobs():
         start = 0.0
         end = duration_per_job
         dependencies = ""
+        storage_nfs_path = utility.get_storage_nfs_folder_path(storageuuid)
+        merge_textfile = storage_nfs_path + joboutput + "_mergeinput.txt"
         # create transcode jobs for each sub-clip
         for num in range(0, num_slaves):
             print "Splitting Job ", jobuuid, " into part ", num
@@ -162,9 +165,13 @@ def split_transcode_jobs():
             start += end + 1/float(fps)
             dependencies += str(jobuuid)
             dependencies += ","
+            # write the merge textfile for ffmpeg concat
+            with open(merge_textfile, "a") as mergefile:
+                mergefile.write("file '" + storage_nfs_path + joboutput + "_part" + str(num) + outfileextension + "'\n")
+                mergefile.close()
         if dependencies[-1:] == ",":
             dependencies = dependencies[:-1]
-        submit_job("Storage", "merge", "ffmpeg -f concat -i %s -c copy %s", " ", jobinput, joboutput + "_part" + str(num) + outfileextension, dependencies, masteruuid)
+        submit_job("Storage", "merge", "ffmpeg %s -f concat -i %s -c copy %s", " ", merge_textfile, joboutput, dependencies, masteruuid)
 
 
 def find_storage_UUID_for_job():
@@ -264,7 +271,7 @@ def number_of_registered_slaves():
     return number_of_slaves
 
 
-def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, dependencies):
+def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, dependencies, masteruuid):
     """
 
 
@@ -278,7 +285,6 @@ def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, depe
     db = utility.dbconnect()
     timestamp = datetime.now()
 
-
     storageuuid = find_storage_UUID_for_job()
     assignedserveruuid = ""
     if jobtype == "Slave":
@@ -286,11 +292,13 @@ def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, depe
     elif jobtype == "Storage":
         assignedserveruuid = find_server_for_storage_job()
 
+    if masteruuid == "":
+        masteruuid = utility.get_uuid()
     jobuuid = utility.get_uuid()
     jobinputcursor = db.cursor()
     jobinputcursor.execute(
         "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-        (jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid, "0", 1, dependencies, 0, timestamp, timestamp, "", ""))
+        (jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid, masteruuid, 1, dependencies, 0, timestamp, timestamp, "", ""))
     db.close()
     return jobuuid
 

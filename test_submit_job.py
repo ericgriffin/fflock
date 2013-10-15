@@ -69,7 +69,7 @@ def find_storage_UUID_for_job():
     return storageuuid
 
 
-def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, dependencies):
+def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, dependencies, masteruuid):
     """
 
 
@@ -89,7 +89,8 @@ def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, depe
     elif jobtype == "Storage":
         assignedserveruuid = find_server_for_storage_job()
 
-    masteruuid = utility.get_uuid()
+    if masteruuid == "":
+        masteruuid = utility.get_uuid()
     jobuuid = utility.get_uuid()
     jobinputcursor = db.cursor()
     jobinputcursor.execute(
@@ -132,12 +133,12 @@ def main(argv):
     input = "test.mov"
     output = "Final.mp4"
 
-    #submit_job(jobtype, jobsubtype, command, commandoptions, input, output, "")
-    #submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", " ", "1.mp4", "Final1.avi", "")
-    #submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", " ", "test.mov", "Final.mp4", "")
+    #submit_job(jobtype, jobsubtype, command, commandoptions, input, output, dependencies, masteruuid)
+    #submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", " ", "1.mp4", "Final1.avi", "", "")
+    #submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", " ", "test.mov", "Final.mp4", "", "")
 
     #submit_job("Slave", "frames", "ffmpeg %s -i %s %s", " ", "test.mov", "Final.mp4", "")
-    submit_job("Slave", "frames", "ffmpeg %s -i %s %s", " ", "test.mov", "Out.mp4", "")
+    submit_job("Slave", "frames", "ffmpeg %s -i %s %s", " ", "test.mpg", "Out.mp4", "", "")
 
 if __name__ == "__main__":
     _uuid = utility.get_uuid()

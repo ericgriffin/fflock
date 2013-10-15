@@ -7,6 +7,8 @@ import os
 import utility
 import signal
 import getopt
+import glob
+from subprocess import PIPE, Popen
 from datetime import datetime, timedelta
 
 
@@ -33,12 +35,14 @@ def unload():
     print "\nunloading"
     db = utility.dbconnect()
     cursor = db.cursor()
-    cursor.execute("SELECT UUID FROM Storage WHERE ServerUUID = %s", str(_uuid))
+    cursor.execute("SELECT UUID, ServerUUID FROM Storage WHERE ServerUUID = %s", str(_uuid))
     results = cursor.fetchall()
-    for row in results:
-        cursor.execute("DELETE FROM Connectivity WHERE StorageUUID = %s", (str(row[0])))
     cursor.execute("DELETE FROM Storage WHERE ServerUUID = %s", (str(_uuid)))
     cursor.execute("DELETE FROM Servers WHERE ServerType = 'Storage' AND UUID = %s", (str(_uuid)))
+    for row in results:
+        cursor.execute("DELETE FROM Connectivity WHERE StorageUUID = %s", (str(row[0])))
+
+
     db.close()
 
 
@@ -87,6 +91,10 @@ def register_storage_volume(path):
     storagetype = "NFS"
     localpathnfs = _localip + ":" + path
     publicpathnfs = _publicip + ":" + path
+    if publicpathnfs[-1:] != "/":
+        publicpathnfs += "/"
+    if localpathnfs[-1:] != "/":
+        localpathnfs += "/"
 
     cursor = db.cursor()
     cursor.execute("SELECT ServerUUID, LocalPathNFS, PublicPathNFS FROM Storage WHERE ServerUUID = %s", _uuid)
@@ -142,6 +150,114 @@ def check_slave_connectivity():
     db.close()
 
 
+def fetch_jobs():
+    """
+
+
+    @return:
+    """
+    db = utility.dbconnect()
+    cursor = db.cursor()
+    cursor.execute("SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = %s AND Assigned = %s AND State = %s", (_uuid, 1, 0))
+    results = cursor.fetchall()
+    for row in results:
+        jobuuid = row[0]
+        jobtype = row[1]
+        jobsubtype = row[2]
+        command = row[3]
+        commandoptions = row[4]
+        jobinput = row[5]
+        joboutput = row[6]
+        storageuuid = row[7]
+
+        if not utility.check_dependencies(jobuuid):
+            break
+        utility.remove_dependency_jobs(jobuuid)
+
+        # check to see if this storage server is busy
+        serverstatecursor = db.cursor()
+        serverstatecursor.execute("SELECT UUID, State FROM Servers WHERE UUID = %s", _uuid)
+        serverstateresults = serverstatecursor.fetchone()
+        # if this server is not busy then fetch next job
+        if serverstateresults[1] == 0:
+            nfsmountpath = ""
+            cursor2 = db.cursor()
+            cursor2.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID = %s", storageuuid)
+            result2 = cursor2.fetchone()
+
+            nfsmountpath = result2[0].split(':', 1)[-1]
+
+            # prepend nfs mount path to input and output file
+            jobinput = nfsmountpath + jobinput
+            joboutput = nfsmountpath + joboutput
+
+            print jobinput, " ", joboutput
+
+            # set server as busy and job as active
+            cursor2.execute("UPDATE Jobs SET State=%s WHERE UUID=%s AND AssignedServerUUID=%s", (1, jobuuid, _uuid))
+            cursor2.execute("UPDATE Servers SET State=%s WHERE UUID=%s", (1, _uuid))
+            # run the job
+            run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput)
+            # set server as free and job as finished
+            cursor2.execute("UPDATE Jobs SET State=%s WHERE UUID=%s AND AssignedServerUUID=%s", (2, jobuuid, _uuid))
+            cursor2.execute("UPDATE Servers SET State=%s WHERE UUID=%s", (0, _uuid))
+            if jobsubtype == "merge":
+                cursor2.execute("DELETE FROM Jobs WHERE UUID=%s", jobuuid)
+
+    db.close()
+    return True
+
+
+def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput):
+    """
+
+
+
+    @param jobinput:
+    @param joboutput:
+    @rtype : boolean
+    @param jobtype:
+    @param command:
+    @param commandoptions:
+    @param input:
+    @param output:
+    @return:
+    """
+    db = utility.dbconnect()
+    cursor = db.cursor()
+
+    jobcommand = command % (commandoptions, jobinput, joboutput)
+    proc = Popen(jobcommand, shell=True, stdout=PIPE)
+
+    while proc.poll() is None:
+        time.sleep(3)
+        register_storage_server()
+    print proc.returncode
+    return True
+
+
+def job_cleanup():
+    """
+
+
+    @rtype : Boolean
+    @return:
+    """
+    db = utility.dbconnect()
+    jobcursor = db.cursor()
+    jobcursor.execute("SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = %s AND Assigned = %s AND State = %s", (_uuid, 1, 2))
+    jobresults = jobcursor.fetchall()
+    for jobrow in jobresults:
+        jobtype = jobrow[1]
+        joboutput = jobrow[6]
+        storageuuid = jobrow[7]
+        if jobtype == "merge":
+            todelete = get_storage_nfs_folder_path(storageuuid) + joboutput + "_*"
+            for file in glob.glob(todelete):
+                os.remove(file)
+    return True
+
+
 def usage():
     """
 
@@ -189,6 +305,8 @@ def main(argv):
         if register_storage_server():
             register_storage_volume(storage)
         check_slave_connectivity()
+        fetch_jobs()
+        job_cleanup()
         time.sleep(5)
 
 
