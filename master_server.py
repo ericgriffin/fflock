@@ -37,6 +37,13 @@ def unload():
 
 
 def register_master_server(uuid):
+    """
+
+
+    @rtype : boolean
+    @param uuid:
+    @return:
+    """
     db = utility.dbconnect()
     timestamp = datetime.now()
 
@@ -124,7 +131,6 @@ def split_transcode_jobs():
     """
     db = utility.dbconnect()
     timestamp = datetime.now()
-    number_of_slaves = find_number_of_registered_slaves()
     jobcursor = db.cursor()
     jobcursor.execute("SELECT UUID, JobType, JobSubType, Command, JobInput, JobOutput, Assigned, State, AssignedServerUUID, Priority, Dependencies, MasterUUID, Progress, ResultValue1, ResultValue2 FROM Jobs WHERE State = %s AND JobSubType = %s", (2, "frames"))
     jobresults = jobcursor.fetchall()
@@ -136,18 +142,29 @@ def split_transcode_jobs():
         jobuuid = jobrow[0]
         jobinput = jobrow[4]
         joboutput = jobrow[5]
+        masteruuid = jobrow[11]
         totalframes = jobrow[13]
         fps = jobrow[14]
-        num_slaves = find_number_of_registered_slaves()
+
+        # determine how many active slaves exist
+        num_slaves = number_of_registered_slaves()
+        # determine length of each sub-clip
         duration_per_job = float(totalframes) / float(fps) / int(num_slaves)
         start = 0.0
         end = duration_per_job
+        dependencies = ""
+        # create transcode jobs for each sub-clip
         for num in range(0, num_slaves):
             print "Splitting Job ", jobuuid, " into part ", num
             outfilename, outfileextension = os.path.splitext(joboutput)
             ffmpeg_startstop = "-ss %f -t %f -y" % (start, end)
-            submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", ffmpeg_startstop, jobinput, joboutput + "_part" + str(num) + outfileextension)
+            jobuuid = submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", ffmpeg_startstop, jobinput, joboutput + "_part" + str(num) + outfileextension, "", masteruuid)
             start += end + 1/float(fps)
+            dependencies += str(jobuuid)
+            dependencies += ","
+        if dependencies[-1:] == ",":
+            dependencies = dependencies[:-1]
+        submit_job("Storage", "merge", "ffmpeg -f concat -i %s -c copy %s", " ", jobinput, joboutput + "_part" + str(num) + outfileextension, dependencies, masteruuid)
 
 
 def find_storage_UUID_for_job():
@@ -176,7 +193,27 @@ def find_server_for_storage_job():
     @rtype : storage server uuid
     @return:
     """
-    return ""
+    storageserveruuid = "NA"
+    db = utility.dbconnect()
+    storagecursor = db.cursor()
+    storagecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = %s", ("Storage"))
+    storageresults = storagecursor.fetchall()
+
+    #find best slave server to assign the job
+    shortest_queue = 1000000
+    server_with_shortest_queue = ""
+    for storagerow in storageresults:
+        current_queue = 0
+        storageserveruuid = storagerow[0]
+        jobcursor = db.cursor()
+        jobcursor.execute("SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = %s", str(storageserveruuid))
+        jobresults = jobcursor.fetchall()
+        for jobrow in jobresults:
+            current_queue += 1
+        if current_queue < shortest_queue:
+            server_with_shortest_queue = storageserveruuid
+            shortest_queue = current_queue
+    return server_with_shortest_queue
 
 
 def find_server_for_slave_job():
@@ -190,7 +227,7 @@ def find_server_for_slave_job():
     slaveserveruuid = "NA"
     db = utility.dbconnect()
     slavecursor = db.cursor()
-    slavecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = %s OR ServerType = %s", ("Slave","Length"))
+    slavecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = %s", ("Slave"))
     slaveresults = slavecursor.fetchall()
 
     #find best slave server to assign the job
@@ -210,7 +247,7 @@ def find_server_for_slave_job():
     return server_with_shortest_queue
 
 
-def find_number_of_registered_slaves():
+def number_of_registered_slaves():
     """
 
 
@@ -227,7 +264,7 @@ def find_number_of_registered_slaves():
     return number_of_slaves
 
 
-def submit_job(jobtype, jobsubtype, command, commandoptions, input, output):
+def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, dependencies):
     """
 
 
@@ -238,13 +275,12 @@ def submit_job(jobtype, jobsubtype, command, commandoptions, input, output):
     @param input:
     @param output:
     """
-    dependencies = ""
     db = utility.dbconnect()
     timestamp = datetime.now()
 
 
     storageuuid = find_storage_UUID_for_job()
-    assignedserveruuid = "NA"
+    assignedserveruuid = ""
     if jobtype == "Slave":
         assignedserveruuid = find_server_for_slave_job()
     elif jobtype == "Storage":
@@ -256,7 +292,7 @@ def submit_job(jobtype, jobsubtype, command, commandoptions, input, output):
         "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid, "0", 1, dependencies, 0, timestamp, timestamp, "", ""))
     db.close()
-    return True
+    return jobuuid
 
 
 def usage():
