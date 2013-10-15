@@ -255,6 +255,7 @@ def job_cleanup():
         if jobtype == "Storage" and jobsubtype == "merge":
             todelete = utility.get_storage_nfs_folder_path(storageuuid) + joboutput + "_*"
             for file in glob.glob(todelete):
+                print "delete ", file
                 os.remove(file)
             deletecursor.execute("DELETE FROM Jobs WHERE UUID=%s", jobuuid)
     db.close()
@@ -309,7 +310,7 @@ def main(argv):
             register_storage_volume(storage)
         check_slave_connectivity()
         fetch_jobs()
-        #job_cleanup()
+        job_cleanup()
         time.sleep(5)
 
 

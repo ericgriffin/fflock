@@ -155,7 +155,8 @@ def split_transcode_jobs():
         end = duration_per_job
         dependencies = ""
         storage_nfs_path = utility.get_storage_nfs_folder_path(storageuuid)
-        merge_textfile = storage_nfs_path + joboutput + "_mergeinput.txt"
+        merge_textfile = joboutput + "_mergeinput.txt"
+        merge_textfile_fullpath = storage_nfs_path + joboutput + "_mergeinput.txt"
         # create transcode jobs for each sub-clip
         for num in range(0, num_slaves):
             print "Splitting Job ", jobuuid, " into part ", num
@@ -166,7 +167,7 @@ def split_transcode_jobs():
             dependencies += str(jobuuid)
             dependencies += ","
             # write the merge textfile for ffmpeg concat
-            with open(merge_textfile, "a") as mergefile:
+            with open(merge_textfile_fullpath, "a") as mergefile:
                 mergefile.write("file '" + storage_nfs_path + joboutput + "_part" + str(num) + outfileextension + "'\n")
                 mergefile.close()
         if dependencies[-1:] == ",":
