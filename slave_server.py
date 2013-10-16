@@ -112,12 +112,12 @@ def calculate_connectivity():
         localserverlatency = utility.ping(localserveraddress)
         publicserverlatency = utility.ping(publicserveraddress)
 
-        if localserverlatency != 9999 and localserverlatency < publicserverlatency:
-            iptype = "Local"
-            latency = localserverlatency
         if publicserverlatency != 9999 and publicserverlatency < localserverlatency:
             iptype = "Public"
             latency = publicserverlatency
+        if localserverlatency != 9999 and localserverlatency < publicserverlatency:
+            iptype = "Local"
+            latency = localserverlatency
 
         if latency != -1:
             cursor2 = db.cursor()
