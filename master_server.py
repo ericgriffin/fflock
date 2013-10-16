@@ -304,6 +304,12 @@ def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, depe
     return jobuuid
 
 
+def cleanup_tasks():
+    remove_stale_slave_servers()
+    remove_stale_storage_servers()
+    return True
+
+
 def usage():
     """
 
@@ -340,12 +346,17 @@ def main(argv):
             if globals.DATABASE_PORT == globals.DATABASE_HOST:
                 globals.DATABASE_PORT = 3306
 
+    loops = 0
+
     while True:
         register_master_server(_uuid)
-        remove_stale_slave_servers()
-        remove_stale_storage_servers()
         split_transcode_jobs()
         time.sleep(5)
+        loops += 1
+        if loops > 6:
+            loops = 0
+            cleanup_tasks()
+
 
 
 if __name__ == "__main__":
