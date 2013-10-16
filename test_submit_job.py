@@ -138,7 +138,7 @@ def main(argv):
     #submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", " ", "test.mov", "Final.mp4", "", "")
 
     #submit_job("Slave", "frames", "ffmpeg %s -i %s %s", " ", "test.mov", "Final.mp4", "")
-    submit_job("Slave", "frames", "ffmpeg %s -i %s %s", " ", "test.mpg", "Out.mp4", "", "")
+    submit_job("Slave", "frames", "ffmpeg %s -i %s %s", " ", "test.mpg", "test_OUT.mp4", "", "")
 
 if __name__ == "__main__":
     _uuid = utility.get_uuid()

@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import utility
 import signal
 import getopt
+import glob
 
 
 def signal_handler(signal, frame):
@@ -80,7 +81,6 @@ def remove_stale_slave_servers():
     @rtype : object
     @return:
     """
-    #TODO remove undeleted storage confirmation files
     db = utility.dbconnect()
     timestamp = datetime.now()
     cursor = db.cursor()
@@ -91,6 +91,33 @@ def remove_stale_slave_servers():
             print "Removing stale slave server %s" % row[1]
             cursor.execute("DELETE FROM Servers WHERE ServerType = 'Slave' AND UUID = %s", (str(row[1])))
             cursor.execute("DELETE FROM Connectivity WHERE SlaveServerUUID = %s", (str(row[1])))
+    db.close()
+    return True
+
+
+def remove_stale_connectivity_entries():
+    """
+
+
+
+    @rtype : boolean
+    """
+    db = utility.dbconnect()
+    deletecursor = db.cursor()
+    connectivitycursor = db.cursor()
+    connectivitycursor.execute("SELECT StorageUUID FROM Connectivity")
+    connectivityresults = connectivitycursor.fetchall()
+    for connectivityrow in connectivityresults:
+        storagecursor = db.cursor()
+        storagecursor.execute("SELECT UUID from Storage")
+        storageresults = storagecursor.fetchall()
+        keep = 0
+        for storagerow in storageresults:
+            if connectivityrow[0] == storagerow[0]:
+                keep = 1
+        if keep == 0:
+            print "Removing stale connectivity entry with StorageUUID", connectivityrow[0]
+            deletecursor.execute("DELETE FROM Connectivity WHERE StorageUUID = %s", connectivityrow[0])
     db.close()
     return True
 
@@ -119,6 +146,38 @@ def remove_stale_storage_servers():
             cursor.execute("DELETE FROM Storage WHERE ServerUUID = %s", (str(row[1])))
             cursor.execute("DELETE FROM Servers WHERE ServerType = 'Storage' AND UUID = %s", (str(row[1])))
     db.close()
+    return True
+
+
+def remove_orphaned_storage_confirmation_files():
+    """
+
+
+    @rtype : boolean
+    @return:
+    """
+    db = utility.dbconnect()
+    storagecursor = db.cursor()
+    storagecursor.execute("SELECT UUID FROM Storage")
+    storageresults = storagecursor.fetchall()
+    for storagerow in storagecursor:
+        storagepath = utility.get_storage_nfs_folder_path(storagerow[0])
+        todelete = storagepath + "*-*-*-*-*"
+        for file in glob.glob(todelete):
+            servercursor = db.cursor()
+            servercursor.execute("SELECT UUID FROM Servers")
+            serverresults = servercursor.fetchall()
+            delete = 1
+            for serverrow in serverresults:
+                serveruuidfile = storagepath + serverrow[0]
+                if serveruuidfile == file:
+                    delete = 0
+            storageuuidfile = storagepath + storagerow[0]
+            if storageuuidfile == file:
+                delete = 0
+            if delete == 1:
+                print "Removing orphaned storage confirmation file", file
+                os.remove(file)
     return True
 
 
@@ -307,6 +366,8 @@ def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, depe
 def cleanup_tasks():
     remove_stale_slave_servers()
     remove_stale_storage_servers()
+    remove_stale_connectivity_entries()
+    remove_orphaned_storage_confirmation_files()
     return True
 
 
@@ -351,12 +412,8 @@ def main(argv):
     while True:
         register_master_server(_uuid)
         split_transcode_jobs()
+        cleanup_tasks()
         time.sleep(5)
-        loops += 1
-        if loops > 6:
-            loops = 0
-            cleanup_tasks()
-
 
 
 if __name__ == "__main__":
