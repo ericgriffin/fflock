@@ -1,9 +1,12 @@
-import subprocess, re, os, time, threading
+import subprocess
+import re
+import os
+import time
+import threading
 
 
 class ffmpegencoder(threading.Thread):
-
-    def __init__(self, inpath, outpath, codecSettings, overwrite, extraArgs = " "):
+    def __init__(self, inpath, outpath, codecSettings, overwrite, extraArgs=" "):
         """
 
 
@@ -16,9 +19,10 @@ class ffmpegencoder(threading.Thread):
         """
         threading.Thread.__init__(self)
         self.progress = 0
-        #build args string
+        # build args string
         strOverwrite = ["-n", "-y"][int(overwrite)]
-        self.args = "ffmpeg %s %s -analyzeduration 1000000 -i %s %s %s" % (strOverwrite, codecSettings, inpath, extraArgs, outpath)
+        self.args = "ffmpeg %s %s -analyzeduration 1000000 -i %s %s %s" % (
+            strOverwrite, codecSettings, inpath, extraArgs, outpath)
         print self.args
 
 
@@ -31,33 +35,33 @@ class ffmpegencoder(threading.Thread):
         """
         self.progress = 0
         self.startTime = self.getTime()
- 
+
         #start subprocess object
         proc = subprocess.Popen(self.args, shell=True, stderr=subprocess.PIPE)
- 
-        self.output = []	    #all lines of output from FFMPEG
-        self.durationFlt = -1	#duration of audio in seconds
-        partialLine = ""	    #currnt console line which is not complete
+
+        self.output = []        #all lines of output from FFMPEG
+        self.durationFlt = -1    #duration of audio in seconds
+        partialLine = ""        #currnt console line which is not complete
 
         # read a set amount of characters from ffmpeg's console output in order to build entire lines of output
         while True:
             #use smaller values for more updates per second
             data = proc.stderr.read(10)
-            
+
             #break when there is no more data
             if len(data) == 0:
                 break
-            
+
             #data needs to be added to previous line
             if not "\r" in data:
                 partialLine += data
             #lines are terminated in this string
             else:
                 tmpLines = []
-            
+
                 #split by \r
                 split = data.split("\r")
-                
+
                 #add the rest of partial line to first item of array
                 if partialLine != "":
                     split[0] = partialLine + split[0]
@@ -65,9 +69,9 @@ class ffmpegencoder(threading.Thread):
 
                 #add every item apart from last to tmpLines array
                 if len(split) > 1:
-                    for i in range(len(split)-1):
+                    for i in range(len(split) - 1):
                         tmpLines.append(split[i])
-                
+
                 #last item is '' if data string ends in \r
                 #last line is partial, save for temporary storage
                 if split[-1] != "":
@@ -75,7 +79,7 @@ class ffmpegencoder(threading.Thread):
                 #last line is terminated
                 else:
                     tmpLines.append(split[-1])
-                    
+
                 self.output.extend(tmpLines)
 
                 #read each full line
@@ -88,7 +92,7 @@ class ffmpegencoder(threading.Thread):
                         if self.durationFlt == -1 and len(durMatches) > 0:
                             #store duration as seconds
                             self.durationFlt = self.strToSecs(durMatches[0])
-                            
+
                     #duration found, get current time position of encode
                     else:
                         #get current time via regex match
@@ -97,13 +101,13 @@ class ffmpegencoder(threading.Thread):
                         if self.durationFlt != -1 and len(timeMatches) > 0:
                             lastTimeMatch = self.strToSecs(timeMatches[0])
                             #store progress as a percentage
-                            self.progress = 100*(float(lastTimeMatch)/self.durationFlt)
+                            self.progress = 100 * (float(lastTimeMatch) / self.durationFlt)
 
         self.progress = 100
-        
+
         #wait for process to end for return code
         self.returnCode = proc.wait()
- 
+
     def getArgs(self):
         """
 
@@ -144,7 +148,7 @@ class ffmpegencoder(threading.Thread):
         @return:
         """
         if self.progress > 5:
-            return (self.getElapsedTime()/self.progress) * (100 - self.progress)
+            return (self.getElapsedTime() / self.progress) * (100 - self.progress)
         else:
             return -1
 
@@ -176,7 +180,7 @@ class ffmpegencoder(threading.Thread):
 
         @return: @raise Exception:
         """
-        try :
+        try:
             return self.getTime() - self.startTime
         except:
             raise Exception("Cannot get elapsed encode time before encode start")
@@ -194,7 +198,7 @@ class ffmpegencoder(threading.Thread):
         m = int(blocks[1])
         s = int(blocks[2])
         ms = int(blocks[3])
-        return h*60*60 + m*60 + s + ms*0.1
+        return h * 60 * 60 + m * 60 + s + ms * 0.1
 
 
     def getTime(self):

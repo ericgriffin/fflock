@@ -33,17 +33,15 @@ def unload():
     """
     #TODO signal slave to unmount shares when storage server goes down (create job)
     print "\nunloading"
-    db = utility.dbconnect()
-    cursor = db.cursor()
-    cursor.execute("SELECT UUID, ServerUUID FROM Storage WHERE ServerUUID = %s", str(_uuid))
+    cursor = _db.cursor()
+    cursor.execute("SELECT UUID, ServerUUID FROM Storage WHERE ServerUUID = '%s'" % str(_uuid))
     results = cursor.fetchall()
-    cursor.execute("DELETE FROM Storage WHERE ServerUUID = %s", (str(_uuid)))
-    cursor.execute("DELETE FROM Servers WHERE ServerType = 'Storage' AND UUID = %s", (str(_uuid)))
+    cursor.execute("DELETE FROM Storage WHERE ServerUUID = '%s'", (str(_uuid)))
+    cursor.execute("DELETE FROM Servers WHERE ServerType = 'Storage' AND UUID = '%s'" % (str(_uuid)))
     for row in results:
-        cursor.execute("DELETE FROM Connectivity WHERE StorageUUID = %s", (str(row[0])))
-
-
-    db.close()
+        cursor.execute("DELETE FROM Connectivity WHERE StorageUUID = '%s'" % (str(row[0])))
+    _db.close()
+    return True
 
 
 def register_storage_server():
@@ -54,10 +52,9 @@ def register_storage_server():
     @rtype : object
     @return:
     """
-    db = utility.dbconnect()
     timestamp = datetime.now()
 
-    cursor = db.cursor()
+    cursor = _db.cursor()
     cursor.execute("SELECT LocalIP, PublicIP, LastSeen, UUID FROM Servers WHERE ServerType = 'Storage'")
     results = cursor.fetchall()
 
@@ -66,14 +63,18 @@ def register_storage_server():
     for row in results:
         if row[0] == _localip and row[1] == _publicip and str(row[3]) == str(_uuid):
             print "Registering Storage Server %s heartbeat at %s" % (_uuid, timestamp)
-            cursor.execute("UPDATE Servers SET LastSeen = %s WHERE LocalIP = %s AND PublicIP = %s AND ServerType = 'Storage' AND UUID = %s", (timestamp, _localip, _publicip, _uuid))
+            cursor.execute(
+                "UPDATE Servers SET LastSeen = '%s' WHERE LocalIP = '%s' AND PublicIP = '%s' AND ServerType = 'Storage' AND UUID = '%s'" % (
+                    timestamp, _localip, _publicip, _uuid))
             server_already_registered = 1
     if server_already_registered == 0:
-        cursor.execute('INSERT INTO Servers(LocalIP,PublicIP, ServerType, LastSeen, UUID, State) VALUES(%s,%s,%s,%s,%s,%s)', (_localip, _publicip, 'Storage', timestamp, _uuid, 0))
-        print "Server successfully registered as a Storage Server running on [L}%s / [P}%s on %s" % (_localip, _publicip, timestamp)
+        cursor.execute(
+            "INSERT INTO Servers(LocalIP,PublicIP, ServerType, LastSeen, UUID, State) VALUES('%s','%s','%s','%s','%s','%s')" % (
+                _localip, _publicip, 'Storage', timestamp, _uuid, 0))
+        print "Server successfully registered as a Storage Server running on [L}%s / [P}%s on %s" % (
+            _localip, _publicip, timestamp)
 
-    db.commit()
-    db.close()
+    _db.commit()
     return True
 
 
@@ -85,9 +86,6 @@ def register_storage_volume(path):
     @param path:
     @return:
     """
-    db = utility.dbconnect()
-    timestamp = datetime.now()
-
     storagetype = "NFS"
     localpathnfs = _localip + ":" + path
     publicpathnfs = _publicip + ":" + path
@@ -96,8 +94,8 @@ def register_storage_volume(path):
     if localpathnfs[-1:] != "/":
         localpathnfs += "/"
 
-    cursor = db.cursor()
-    cursor.execute("SELECT ServerUUID, LocalPathNFS, PublicPathNFS FROM Storage WHERE ServerUUID = %s", _uuid)
+    cursor = _db.cursor()
+    cursor.execute("SELECT ServerUUID, LocalPathNFS, PublicPathNFS FROM Storage WHERE ServerUUID = '%s'" % _uuid)
     results = cursor.fetchall()
 
     volume_already_registered = 0
@@ -107,9 +105,10 @@ def register_storage_volume(path):
             volume_already_registered = 1
     if volume_already_registered == 0:
         volumeuuid = utility.get_uuid()
-        cursor.execute('INSERT INTO Storage(UUID, ServerUUID, StorageType, LocalPathNFS, PublicPathNFS) VALUES(%s,%s,%s,%s,%s)', (volumeuuid, _uuid, storagetype, localpathnfs, publicpathnfs))
+        cursor.execute(
+            "INSERT INTO Storage(UUID, ServerUUID, StorageType, LocalPathNFS, PublicPathNFS) VALUES('%s','%s','%s','%s','%s')" % (
+                volumeuuid, _uuid, storagetype, localpathnfs, publicpathnfs))
         print "Volume %s on server %s has been registered" % (volumeuuid, _uuid)
-    db.close()
     return True
 
 
@@ -120,15 +119,15 @@ def check_slave_connectivity():
 
     @rtype : object
     """
-    db = utility.dbconnect()
-    cursor0 = db.cursor()
-    cursor0.execute("SELECT UUID, ServerUUID, LocalPathNFS FROM Storage WHERE ServerUUID = %s", _uuid)
+    cursor0 = _db.cursor()
+    cursor0.execute("SELECT UUID, ServerUUID, LocalPathNFS FROM Storage WHERE ServerUUID = '%s'" % _uuid)
     results0 = cursor0.fetchall()
     for row0 in results0:
         storageuuid = row0[0]
         localpathnfs = row0[2]
-        cursor = db.cursor()
-        cursor.execute("SELECT SlaveServerUUID, StorageUUID, Connected FROM Connectivity WHERE StorageUUID = %s AND Connected = 0", storageuuid)
+        cursor = _db.cursor()
+        cursor.execute(
+            "SELECT SlaveServerUUID, StorageUUID, Connected FROM Connectivity WHERE StorageUUID = '%s' AND Connected = 0" % storageuuid)
         results = cursor.fetchall()
         for row in results:
             slaveserveruuid = row[0]
@@ -147,7 +146,7 @@ def check_slave_connectivity():
                 else:
                     print "Storage connection from slave %s failed" % slaveserveruuid
                     file.close()
-    db.close()
+    return True
 
 
 def fetch_jobs():
@@ -156,9 +155,10 @@ def fetch_jobs():
 
     @return:
     """
-    db = utility.dbconnect()
-    cursor = db.cursor()
-    cursor.execute("SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = %s AND Assigned = %s AND State = %s", (_uuid, 1, 0))
+    cursor = _db.cursor()
+    cursor.execute(
+        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = '%s' AND Assigned = '%s' AND State = '%s'" % (
+            _uuid, 1, 0))
     results = cursor.fetchall()
     for row in results:
         jobuuid = row[0]
@@ -175,14 +175,13 @@ def fetch_jobs():
         utility.remove_dependency_jobs(jobuuid)
 
         # check to see if this storage server is busy
-        serverstatecursor = db.cursor()
-        serverstatecursor.execute("SELECT UUID, State FROM Servers WHERE UUID = %s", _uuid)
+        serverstatecursor = _db.cursor()
+        serverstatecursor.execute("SELECT UUID, State FROM Servers WHERE UUID = '%s'" % _uuid)
         serverstateresults = serverstatecursor.fetchone()
         # if this server is not busy then fetch next job
         if serverstateresults[1] == 0:
-            nfsmountpath = ""
-            cursor2 = db.cursor()
-            cursor2.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID = %s", storageuuid)
+            cursor2 = _db.cursor()
+            cursor2.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID = '%s'" % storageuuid)
             result2 = cursor2.fetchone()
 
             nfsmountpath = result2[0].split(':', 1)[-1]
@@ -194,15 +193,15 @@ def fetch_jobs():
             print jobinput, " ", joboutput
 
             # set server as busy and job as active
-            cursor2.execute("UPDATE Jobs SET State=%s WHERE UUID=%s AND AssignedServerUUID=%s", (1, jobuuid, _uuid))
-            cursor2.execute("UPDATE Servers SET State=%s WHERE UUID=%s", (1, _uuid))
+            cursor2.execute(
+                "UPDATE Jobs SET State='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (1, jobuuid, _uuid))
+            cursor2.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (1, _uuid))
             # run the job
             run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput)
             # set server as free and job as finished
-            cursor2.execute("UPDATE Jobs SET State=%s WHERE UUID=%s AND AssignedServerUUID=%s", (2, jobuuid, _uuid))
-            cursor2.execute("UPDATE Servers SET State=%s WHERE UUID=%s", (0, _uuid))
-
-    db.close()
+            cursor2.execute(
+                "UPDATE Jobs SET State='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (2, jobuuid, _uuid))
+            cursor2.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (0, _uuid))
     return True
 
 
@@ -217,13 +216,10 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, job
     @param jobtype:
     @param command:
     @param commandoptions:
-    @param input:
-    @param output:
+    @param jobinput:
+    @param joboutput:
     @return:
     """
-    db = utility.dbconnect()
-    cursor = db.cursor()
-
     jobcommand = command % (commandoptions, jobinput, joboutput)
     proc = Popen(jobcommand, shell=True, stdout=PIPE)
 
@@ -241,10 +237,11 @@ def job_cleanup():
     @rtype : Boolean
     @return:
     """
-    db = utility.dbconnect()
-    jobcursor = db.cursor()
-    deletecursor = db.cursor()
-    jobcursor.execute("SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = %s AND Assigned = %s AND State = %s", (_uuid, 1, 2))
+    jobcursor = _db.cursor()
+    deletecursor = _db.cursor()
+    jobcursor.execute(
+        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = '%s' AND Assigned = '%s' AND State = '%s'" % (
+            _uuid, 1, 2))
     jobresults = jobcursor.fetchall()
     for jobrow in jobresults:
         jobuuid = jobrow[0]
@@ -257,8 +254,7 @@ def job_cleanup():
             for file in glob.glob(todelete):
                 print "delete ", file
                 os.remove(file)
-            deletecursor.execute("DELETE FROM Jobs WHERE UUID=%s", jobuuid)
-    db.close()
+            deletecursor.execute("DELETE FROM Jobs WHERE UUID='%s'" % jobuuid)
     return True
 
 
@@ -275,7 +271,7 @@ def usage():
     print "-s [path] / --s3 [path] : specify AWS S3 storage path\n"
 
 
-def main(argv):
+def parse_cmd(argv):
     """
 
 
@@ -301,9 +297,19 @@ def main(argv):
         if opt in ("-n", "--nfs"):
             storage = arg
             if storage[-1:] != "/":
-                storage = storage + "/"
+                storage += "/"
         if opt in ("-s", "--s3"):
             storage = arg
+    return storage
+
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal_handler)
+    _uuid = utility.get_uuid()
+    _localip = utility.local_ip_address()
+    _publicip = utility.public_ip_address()
+    storage = parse_cmd(sys.argv[1:])
+    _db = utility.dbconnect()
 
     while True:
         if register_storage_server():
@@ -312,12 +318,3 @@ def main(argv):
         fetch_jobs()
         #job_cleanup()
         time.sleep(5)
-
-
-if __name__ == "__main__":
-    signal.signal(signal.SIGINT, signal_handler)
-    _uuid = utility.get_uuid()
-    _localip = utility.local_ip_address()
-    _publicip = utility.public_ip_address()
-
-    main(sys.argv[1:])

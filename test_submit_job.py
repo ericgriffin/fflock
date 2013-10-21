@@ -28,10 +28,9 @@ def find_server_for_slave_job():
     @rtype : slave server uuid
     @return:
     """
-    slaveserveruuid = "NA"
     db = utility.dbconnect()
     slavecursor = db.cursor()
-    slavecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = %s", ("Slave"))
+    slavecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = '%s'" % "Slave")
     slaveresults = slavecursor.fetchall()
 
     #find best slave server to assign the job
@@ -41,7 +40,9 @@ def find_server_for_slave_job():
         current_queue = 0
         slaveserveruuid = slaverow[0]
         jobcursor = db.cursor()
-        jobcursor.execute("SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = %s", str(slaveserveruuid))
+        jobcursor.execute(
+            "SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = '%s'" % str(
+                slaveserveruuid))
         jobresults = jobcursor.fetchall()
         for jobrow in jobresults:
             current_queue += 1
@@ -62,7 +63,7 @@ def find_storage_UUID_for_job():
     storageuuid = ""
     db = utility.dbconnect()
     storagecursor = db.cursor()
-    storagecursor.execute("SELECT UUID FROM Storage WHERE StorageType = %s", ("NFS"))
+    storagecursor.execute("SELECT UUID FROM Storage WHERE StorageType = '%s'" % "NFS")
     storageresults = storagecursor.fetchall()
     for storagerow in storageresults:
         storageuuid = storagerow[0]
@@ -94,12 +95,11 @@ def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, depe
     jobuuid = utility.get_uuid()
     jobinputcursor = db.cursor()
     jobinputcursor.execute(
-        "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-        (jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid, masteruuid, 1, dependencies, 0, _timestamp, _timestamp, "", ""))
+        "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2) VALUES('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" %
+        (jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid,
+         masteruuid, 1, dependencies, 0, _timestamp, _timestamp, "", ""))
     db.close()
     return True
-
-
 
 
 def main(argv):
@@ -123,9 +123,6 @@ def main(argv):
             if globals.DATABASE_PORT == globals.DATABASE_HOST:
                 globals.DATABASE_PORT = 3306
 
-
-
-
     jobtype = "Slave"
     jobsubtype = "transcode"
     command = "ffmpeg %s -i %s %s"
@@ -139,6 +136,7 @@ def main(argv):
 
     #submit_job("Slave", "frames", "ffmpeg %s -i %s %s", " ", "test.mov", "Final.mp4", "")
     submit_job("Slave", "frames", "ffmpeg %s -i %s %s", " ", "test.mpg", "test_OUT.mp4", "", "")
+
 
 if __name__ == "__main__":
     _uuid = utility.get_uuid()

@@ -12,15 +12,15 @@ import glob
 
 
 def signal_handler(signal, frame):
-        """
+    """
 
 
-        @rtype : object
-        @param signal:
-        @param frame:
-        """
-        unload()
-        sys.exit(0)
+    @rtype : object
+    @param signal:
+    @param frame:
+    """
+    unload()
+    sys.exit(0)
 
 
 def unload():
@@ -31,10 +31,9 @@ def unload():
     @rtype : object
     """
     print "\nunloading"
-    db = utility.dbconnect()
-    cursor = db.cursor()
-    cursor.execute("DELETE FROM Servers WHERE ServerType = 'Master' AND UUID = %s", (str(_uuid)))
-    db.close()
+    cursor = _db.cursor()
+    cursor.execute("DELETE FROM Servers WHERE ServerType = 'Master' AND UUID = '%s'" % (str(_uuid)))
+    _db.close()
 
 
 def register_master_server(uuid):
@@ -45,31 +44,36 @@ def register_master_server(uuid):
     @param uuid:
     @return:
     """
-    db = utility.dbconnect()
     timestamp = datetime.now()
 
-    cursor = db.cursor()
+    cursor = _db.cursor()
     cursor.execute("SELECT LocalIP, PublicIP, LastSeen, UUID, ServerType FROM Servers WHERE ServerType = 'Master'")
     results = cursor.fetchone()
 
     if results is None:
-        cursor.execute('INSERT INTO Servers(LocalIP,PublicIP, ServerType, LastSeen, UUID, State) VALUES(%s,%s,%s,%s,%s,%s)', (_localip, _publicip, 'Master', timestamp, uuid, 0))
-        print "Server successfully registered as the Master Server running on [L}%s / [P}%s on %s" % (_localip, _publicip, timestamp)
+        cursor.execute(
+            "INSERT INTO Servers(LocalIP, PublicIP, ServerType, LastSeen, UUID, State) VALUES('%s','%s','%s','%s','%s','%s')" % (
+                _localip, _publicip, 'Master', timestamp, uuid, 0))
+        print "Server successfully registered as the Master Server running on [L}%s / [P}%s on %s" % (
+            _localip, _publicip, timestamp)
     else:
         if results[0] == _localip and results[1] == _publicip and str(results[3]) == str(uuid):
             print "Registering Master Server %s heartbeat at %s" % (_uuid, timestamp)
-            cursor.execute("UPDATE Servers SET LastSeen = %s WHERE LocalIP = %s AND PublicIP = %s AND ServerType = 'Master' AND UUID = %s", (timestamp, _localip, _publicip, uuid))
+            cursor.execute(
+                "UPDATE Servers SET LastSeen = '%s' WHERE LocalIP = '%s' AND PublicIP = '%s' AND ServerType = 'Master' AND UUID = '%s'" % (
+                    timestamp, _localip, _publicip, uuid))
         elif (timestamp - results[2]) > timedelta(seconds=30):
-            print "The Master Server running on [L]%s / [P]%s but heartbeat has not been detected for more than 30 seconds." % (results[0], results[1])
+            print "The Master Server running on [L]%s / [P]%s but heartbeat has not been detected for more than 30 seconds." % (
+                results[0], results[1])
             print "Registering this server as the Master Server"
             cursor.execute("DELETE FROM Servers WHERE ServerType = 'Master'")
             register_master_server(uuid)
         else:
-            print "A Master Server is actively running on [L]%s / [P]%s. Last heartbeat was seen on %s" % (results[0], results[1], results[2])
+            print "A Master Server is actively running on [L]%s / [P]%s. Last heartbeat was seen on %s" % (
+                results[0], results[1], results[2])
             sys.exit(1)
 
-    db.commit()
-    db.close()
+    _db.commit()
     return True
 
 
@@ -81,17 +85,15 @@ def remove_stale_slave_servers():
     @rtype : object
     @return:
     """
-    db = utility.dbconnect()
     timestamp = datetime.now()
-    cursor = db.cursor()
+    cursor = _db.cursor()
     cursor.execute("SELECT LastSeen, UUID, ServerType FROM Servers WHERE ServerType = 'Slave'")
     results = cursor.fetchall()
     for row in results:
         if (timestamp - row[0]) > timedelta(seconds=30):
             print "Removing stale slave server %s" % row[1]
-            cursor.execute("DELETE FROM Servers WHERE ServerType = 'Slave' AND UUID = %s", (str(row[1])))
-            cursor.execute("DELETE FROM Connectivity WHERE SlaveServerUUID = %s", (str(row[1])))
-    db.close()
+            cursor.execute("DELETE FROM Servers WHERE ServerType = 'Slave' AND UUID = '%s'" % (str(row[1])))
+            cursor.execute("DELETE FROM Connectivity WHERE SlaveServerUUID = '%s'" % (str(row[1])))
     return True
 
 
@@ -102,14 +104,13 @@ def remove_stale_connectivity_entries():
 
     @rtype : boolean
     """
-    db = utility.dbconnect()
-    deletecursor = db.cursor()
-    connectivitycursor = db.cursor()
+    deletecursor = _db.cursor()
+    connectivitycursor = _db.cursor()
     connectivitycursor.execute("SELECT StorageUUID FROM Connectivity")
     connectivityresults = connectivitycursor.fetchall()
     for connectivityrow in connectivityresults:
-        storagecursor = db.cursor()
-        storagecursor.execute("SELECT UUID from Storage")
+        storagecursor = _db.cursor()
+        storagecursor.execute("SELECT UUID FROM Storage")
         storageresults = storagecursor.fetchall()
         keep = 0
         for storagerow in storageresults:
@@ -117,8 +118,7 @@ def remove_stale_connectivity_entries():
                 keep = 1
         if keep == 0:
             print "Removing stale connectivity entry with StorageUUID", connectivityrow[0]
-            deletecursor.execute("DELETE FROM Connectivity WHERE StorageUUID = %s", connectivityrow[0])
-    db.close()
+            deletecursor.execute("DELETE FROM Connectivity WHERE StorageUUID = '%s'" % connectivityrow[0])
     return True
 
 
@@ -130,22 +130,20 @@ def remove_stale_storage_servers():
     @rtype : object
     @return:
     """
-    db = utility.dbconnect()
     timestamp = datetime.now()
-    cursor = db.cursor()
+    cursor = _db.cursor()
     cursor.execute("SELECT LastSeen, UUID, ServerType FROM Servers WHERE ServerType = 'Storage'")
     results = cursor.fetchall()
     for row in results:
         if (timestamp - row[0]) > timedelta(seconds=30):
             print "Removing stale storage server %s" % row[1]
-            cursor2 = db.cursor()
-            cursor2.execute("SELECT UUID, ServerUUID FROM Storage WHERE ServerUUID = %s", str(row[1]))
+            cursor2 = _db.cursor()
+            cursor2.execute("SELECT UUID, ServerUUID FROM Storage WHERE ServerUUID = '%s'" % str(row[1]))
             results2 = cursor2.fetchall()
             for row2 in results2:
-                cursor.execute("DELETE FROM Connectivity WHERE StorageUUID = %s", (str(row2[0])))
-            cursor.execute("DELETE FROM Storage WHERE ServerUUID = %s", (str(row[1])))
-            cursor.execute("DELETE FROM Servers WHERE ServerType = 'Storage' AND UUID = %s", (str(row[1])))
-    db.close()
+                cursor.execute("DELETE FROM Connectivity WHERE StorageUUID = '%s'" % (str(row2[0])))
+            cursor.execute("DELETE FROM Storage WHERE ServerUUID = '%s'" % (str(row[1])))
+            cursor.execute("DELETE FROM Servers WHERE ServerType = 'Storage' AND UUID = '%s'" % (str(row[1])))
     return True
 
 
@@ -156,15 +154,14 @@ def remove_orphaned_storage_confirmation_files():
     @rtype : boolean
     @return:
     """
-    db = utility.dbconnect()
-    storagecursor = db.cursor()
+    storagecursor = _db.cursor()
     storagecursor.execute("SELECT UUID FROM Storage")
     storageresults = storagecursor.fetchall()
-    for storagerow in storagecursor:
+    for storagerow in storageresults:
         storagepath = utility.get_storage_nfs_folder_path(storagerow[0])
         todelete = storagepath + "*-*-*-*-*"
         for file in glob.glob(todelete):
-            servercursor = db.cursor()
+            servercursor = _db.cursor()
             servercursor.execute("SELECT UUID FROM Servers")
             serverresults = servercursor.fetchall()
             delete = 1
@@ -188,15 +185,15 @@ def split_transcode_jobs():
 
     @rtype : boolean
     """
-    db = utility.dbconnect()
-    timestamp = datetime.now()
-    jobcursor = db.cursor()
-    jobcursor.execute("SELECT UUID, JobType, JobSubType, Command, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, Priority, Dependencies, MasterUUID, Progress, ResultValue1, ResultValue2 FROM Jobs WHERE State = %s AND JobSubType = %s", (2, "frames"))
+    jobcursor = _db.cursor()
+    jobcursor.execute(
+        "SELECT UUID, JobType, JobSubType, Command, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, Priority, Dependencies, MasterUUID, Progress, ResultValue1, ResultValue2 FROM Jobs WHERE State = '%s' AND JobSubType = '%s'" % (
+            2, "frames"))
     jobresults = jobcursor.fetchall()
 
     for jobrow in jobresults:
-        deletecursor = db.cursor()
-        deletecursor.execute("DELETE FROM Jobs WHERE UUID = %s", jobrow[0])
+        deletecursor = _db.cursor()
+        deletecursor.execute("DELETE FROM Jobs WHERE UUID = '%s'" % jobrow[0])
 
         jobuuid = jobrow[0]
         jobinput = jobrow[4]
@@ -220,9 +217,10 @@ def split_transcode_jobs():
         for num in range(0, num_slaves):
             print "Splitting Job ", jobuuid, " into part ", num
             outfilename, outfileextension = os.path.splitext(joboutput)
-            ffmpeg_startstop = "-ss %f -t %f -y" % (start, end)
-            jobuuid = submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", ffmpeg_startstop, jobinput, joboutput + "_part" + str(num) + outfileextension, "", masteruuid)
-            start += end + 1/float(fps)
+            ffmpeg_startstop = "-flags:v +global_header -ss %f -t %f -y" % (start, end)
+            jobuuid = submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", ffmpeg_startstop, jobinput,
+                                 joboutput + "_part" + str(num) + outfileextension, "", masteruuid)
+            start += end + 1 / float(fps)
             dependencies += str(jobuuid)
             dependencies += ","
             # write the merge textfile for ffmpeg concat
@@ -231,7 +229,8 @@ def split_transcode_jobs():
                 mergefile.close()
         if dependencies[-1:] == ",":
             dependencies = dependencies[:-1]
-        submit_job("Storage", "merge", "ffmpeg %s -f concat -i %s -c copy %s", " ", merge_textfile, joboutput, dependencies, masteruuid)
+        submit_job("Storage", "merge", "ffmpeg %s -f concat -i %s -c copy %s", " ", merge_textfile, joboutput,
+                   dependencies, masteruuid)
 
 
 def find_storage_UUID_for_job():
@@ -243,9 +242,8 @@ def find_storage_UUID_for_job():
     @return:
     """
     storageuuid = ""
-    db = utility.dbconnect()
-    storagecursor = db.cursor()
-    storagecursor.execute("SELECT UUID FROM Storage WHERE StorageType = %s", ("NFS"))
+    storagecursor = _db.cursor()
+    storagecursor.execute("SELECT UUID FROM Storage WHERE StorageType = '%s'" % "NFS")
     storageresults = storagecursor.fetchall()
     for storagerow in storageresults:
         storageuuid = storagerow[0]
@@ -260,10 +258,8 @@ def find_server_for_storage_job():
     @rtype : storage server uuid
     @return:
     """
-    storageserveruuid = "NA"
-    db = utility.dbconnect()
-    storagecursor = db.cursor()
-    storagecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = %s", ("Storage"))
+    storagecursor = _db.cursor()
+    storagecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = '%s'" % "Storage")
     storageresults = storagecursor.fetchall()
 
     #find best slave server to assign the job
@@ -272,8 +268,10 @@ def find_server_for_storage_job():
     for storagerow in storageresults:
         current_queue = 0
         storageserveruuid = storagerow[0]
-        jobcursor = db.cursor()
-        jobcursor.execute("SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = %s", str(storageserveruuid))
+        jobcursor = _db.cursor()
+        jobcursor.execute(
+            "SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = '%s'" % str(
+                storageserveruuid))
         jobresults = jobcursor.fetchall()
         for jobrow in jobresults:
             current_queue += 1
@@ -292,9 +290,8 @@ def find_server_for_slave_job():
     @return:
     """
     slaveserveruuid = "NA"
-    db = utility.dbconnect()
-    slavecursor = db.cursor()
-    slavecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = %s", ("Slave"))
+    slavecursor = _db.cursor()
+    slavecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = '%s'" % "Slave")
     slaveresults = slavecursor.fetchall()
 
     #find best slave server to assign the job
@@ -303,8 +300,10 @@ def find_server_for_slave_job():
     for slaverow in slaveresults:
         current_queue = 0
         slaveserveruuid = slaverow[0]
-        jobcursor = db.cursor()
-        jobcursor.execute("SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = %s", str(slaveserveruuid))
+        jobcursor = _db.cursor()
+        jobcursor.execute(
+            "SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = '%s'" % str(
+                slaveserveruuid))
         jobresults = jobcursor.fetchall()
         for jobrow in jobresults:
             current_queue += 1
@@ -322,12 +321,11 @@ def number_of_registered_slaves():
     @return:
     """
     number_of_slaves = 0
-    db = utility.dbconnect()
-    slavecursor = db.cursor()
-    slavecursor.execute("SELECT ServerType FROM Servers WHERE ServerType = %s", "Slave")
+    slavecursor = _db.cursor()
+    slavecursor.execute("SELECT ServerType FROM Servers WHERE ServerType = '%s'" % "Slave")
     slaveresults = slavecursor.fetchall()
     for slaverow in slaveresults:
-        number_of_slaves = number_of_slaves + 1
+        number_of_slaves += 1
     return number_of_slaves
 
 
@@ -342,7 +340,6 @@ def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, depe
     @param input:
     @param output:
     """
-    db = utility.dbconnect()
     timestamp = datetime.now()
 
     storageuuid = find_storage_UUID_for_job()
@@ -355,11 +352,11 @@ def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, depe
     if masteruuid == "":
         masteruuid = utility.get_uuid()
     jobuuid = utility.get_uuid()
-    jobinputcursor = db.cursor()
+    jobinputcursor = _db.cursor()
     jobinputcursor.execute(
-        "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-        (jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid, masteruuid, 1, dependencies, 0, timestamp, timestamp, "", ""))
-    db.close()
+        "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2) VALUES('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" %
+        (jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid,
+         masteruuid, 1, dependencies, 0, timestamp, timestamp, "", ""))
     return jobuuid
 
 
@@ -383,8 +380,7 @@ def usage():
     print "-d [address:{port}] / --database [ip address:{port}] : specify the fflock database\n"
 
 
-
-def main(argv):
+def parse_cmd(argv):
     """
 
 
@@ -406,14 +402,7 @@ def main(argv):
             globals.DATABASE_PORT = arg.split(':', 1)[-1]
             if globals.DATABASE_PORT == globals.DATABASE_HOST:
                 globals.DATABASE_PORT = 3306
-
-    loops = 0
-
-    while True:
-        register_master_server(_uuid)
-        split_transcode_jobs()
-        cleanup_tasks()
-        time.sleep(5)
+    return True
 
 
 if __name__ == "__main__":
@@ -421,4 +410,12 @@ if __name__ == "__main__":
     _uuid = utility.get_uuid()
     _localip = utility.local_ip_address()
     _publicip = utility.public_ip_address()
-    main(sys.argv[1:])
+
+    parse_cmd(sys.argv[1:])
+    _db = utility.dbconnect()
+
+    while True:
+        register_master_server(_uuid)
+        split_transcode_jobs()
+        cleanup_tasks()
+        time.sleep(5)

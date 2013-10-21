@@ -1,7 +1,0 @@
-<?xml version="1.0"?>
-<flock>
-    <job type="storage" command="pull" input="http://fflock.s3.amazonaws.com/Test1.wmv" output="Test1.wmv" />
-    <job type="slave" command="ffmpeg %s -i %s %s" input="Test1.wmv" output="Final.mp4" commandoptions="" />
-    <job type="storage" command="push" input="Final.mpg" output="http://fflock.s3.amazonaws.com/Final.mp4" />
-</flock>
-

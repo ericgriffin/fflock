@@ -22,7 +22,8 @@ def dbconnect():
     @return:
     """
     try:
-        db = MySQLdb.connect(host=globals.DATABASE_HOST, user=globals.DATABASE_USER, passwd=globals.DATABASE_PASSWD, port=int(globals.DATABASE_PORT), db=globals.DATABASE_NAME)
+        db = MySQLdb.connect(host=globals.DATABASE_HOST, user=globals.DATABASE_USER, passwd=globals.DATABASE_PASSWD,
+                             port=int(globals.DATABASE_PORT), db=globals.DATABASE_NAME)
     except MySQLdb.Error, e:
         print "Error %d: %s" % (e.args[0], e.args[1])
         sys.exit(1)
@@ -131,15 +132,17 @@ def getTotalFrames(file, fps):
     """
     information = Popen(("ffmpeg", "-i", file), stdout=PIPE, stderr=PIPE)
     timecode = search("(\d+):(\d+):(\d+)\.(\d+)", information.communicate()[1])
-    return ((((float(timecode.group(1)) * 60) + float(timecode.group(2))) * 60) + float(timecode.group(3)) + float(timecode.group(4))/100) * float(fps)
+    return ((((float(timecode.group(1)) * 60) + float(timecode.group(2))) * 60) + float(timecode.group(3)) + float(
+        timecode.group(4)) / 100) * float(fps)
 
 
 def get_storage_nfs_folder_path(storageuuid):
     db = dbconnect()
     cursor2 = db.cursor()
-    cursor2.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID = %s", storageuuid)
+    cursor2.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID = '%s'" % storageuuid)
     result2 = cursor2.fetchone()
     nfsmountpath = result2[0].split(':', 1)[-1]
+    db.close()
     return nfsmountpath
 
 
@@ -154,13 +157,14 @@ def check_dependencies(jobuuid):
     dependencies_cleared = 1
     db = dbconnect()
     cursor = db.cursor()
-    cursor.execute("SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE UUID = %s", jobuuid)
+    cursor.execute(
+        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE UUID = '%s'" % jobuuid)
     results = cursor.fetchone()
     dependencies = results[9]
     dependency_list = dependencies.split(",")
     depcursor = db.cursor()
     for dep_jobuuid in dependency_list:
-        depcursor.execute("SELECT State FROM Jobs WHERE UUID = %s", dep_jobuuid)
+        depcursor.execute("SELECT State FROM Jobs WHERE UUID = '%s'" % dep_jobuuid)
         depresult = depcursor.fetchone()
         if depresult[0] != 2:
             dependencies_cleared = 0
@@ -179,13 +183,14 @@ def remove_dependency_jobs(jobuuid):
     """
     db = dbconnect()
     cursor = db.cursor()
-    cursor.execute("SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE UUID = %s", jobuuid)
+    cursor.execute(
+        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE UUID = '%s'" % jobuuid)
     results = cursor.fetchone()
     dependencies = results[9]
     dependency_list = dependencies.split(",")
     depcursor = db.cursor()
     for dep_jobuuid in dependency_list:
-        depcursor.execute("DELETE FROM Jobs WHERE UUID = %s", dep_jobuuid)
+        depcursor.execute("DELETE FROM Jobs WHERE UUID = '%s'" % dep_jobuuid)
         # remove intermediate job output files
 
     db.close()

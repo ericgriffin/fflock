@@ -11,7 +11,6 @@ import sys
 import getopt
 from re import search
 
-
 from ffmpeg_encoder import *
 
 
@@ -33,15 +32,16 @@ def unload():
 
     """
     print "\nunloading"
-    db = utility.dbconnect()
-    connectivitycursor = db.cursor()
-    connectivitycursor.execute("SELECT SlaveServerUUID, StorageUUID, IPType, Connected FROM Connectivity WHERE SlaveServerUUID=%s", _uuid)
+    connectivitycursor = _db.cursor()
+    connectivitycursor.execute(
+        "SELECT SlaveServerUUID, StorageUUID, IPType, Connected FROM Connectivity WHERE SlaveServerUUID='%s'" % _uuid)
     connectivityresults = connectivitycursor.fetchall()
     nfsmount = "-1"
     for connectivityrow in connectivityresults:
-        storagecursor = db.cursor()
+        storagecursor = _db.cursor()
 
-        storagecursor.execute("SELECT LocalPathNFS, PublicPathNFS, UUID FROM Storage WHERE UUID=%s", connectivityrow[1])
+        storagecursor.execute(
+            "SELECT LocalPathNFS, PublicPathNFS, UUID FROM Storage WHERE UUID='%s'" % connectivityrow[1])
         storageresults = storagecursor.fetchone()
         if connectivityrow[2] == "Local" and connectivityrow[3] == 1:
             nfsmount = storageresults[0]
@@ -54,9 +54,10 @@ def unload():
         if os.path.ismount(nfsmountpath):
             print "Un-mounting NFS share ", nfsmountpath
             Popen(unmountnfsshare, shell=True)
-    connectivitycursor.execute("DELETE FROM Servers WHERE ServerType = 'Slave' AND UUID = %s", (str(_uuid)))
-    connectivitycursor.execute("DELETE FROM Connectivity WHERE SlaveServerUUID = %s", (str(_uuid)))
-    db.close()
+    connectivitycursor.execute("DELETE FROM Servers WHERE ServerType = 'Slave' AND UUID='%s'" % (str(_uuid)))
+    connectivitycursor.execute("DELETE FROM Connectivity WHERE SlaveServerUUID='%s'" % (str(_uuid)))
+    _db.close()
+    return True
 
 
 def register_slave_server():
@@ -67,10 +68,9 @@ def register_slave_server():
     @rtype : boolean
     @return:
     """
-    db = utility.dbconnect()
     timestamp = datetime.now()
 
-    cursor = db.cursor()
+    cursor = _db.cursor()
     cursor.execute("SELECT LocalIP, PublicIP, LastSeen, UUID FROM Servers WHERE ServerType = 'Slave'")
     results = cursor.fetchall()
 
@@ -79,14 +79,18 @@ def register_slave_server():
     for row in results:
         if row[0] == _localip and row[1] == _publicip and str(row[3]) == str(_uuid):
             print "Registering Slave Server %s heartbeat at %s" % (_uuid, timestamp)
-            cursor.execute("UPDATE Servers SET LastSeen = %s WHERE LocalIP = %s AND PublicIP = %s AND ServerType = 'Slave' AND UUID = %s", (timestamp, _localip, _publicip, _uuid))
+            cursor.execute(
+                "UPDATE Servers SET LastSeen = '%s' WHERE LocalIP = '%s' AND PublicIP = '%s' AND ServerType = 'Slave' AND UUID = '%s'" % (
+                    timestamp, _localip, _publicip, _uuid))
             server_already_registered = 1
     if server_already_registered == 0:
-        cursor.execute('INSERT INTO Servers(LocalIP, PublicIP, ServerType, LastSeen, UUID, State) VALUES(%s,%s,%s,%s,%s,%s)', (_localip, _publicip, 'Slave', timestamp, _uuid, 0))
-        print "Server successfully registered as a Slave Server running on [L}%s / [P}%s on %s" % (_localip, _publicip, timestamp)
+        cursor.execute(
+            "INSERT INTO Servers(LocalIP, PublicIP, ServerType, LastSeen, UUID, State) VALUES('%s','%s','%s','%s','%s','%s')" % (
+                _localip, _publicip, 'Slave', timestamp, _uuid, 0))
+        print "Server successfully registered as a Slave Server running on [L}%s / [P}%s on %s" % (
+            _localip, _publicip, timestamp)
 
-    db.commit()
-    db.close()
+    _db.commit()
     return True
 
 
@@ -97,17 +101,14 @@ def calculate_connectivity():
 
     @rtype : boolean
     """
-    db = utility.dbconnect()
-    cursor = db.cursor()
+    cursor = _db.cursor()
     cursor.execute("SELECT UUID, LocalPathNFS, PublicPathNFS FROM Storage")
     results = cursor.fetchall()
     latency = -1
 
     for row in results:
         connection_already_exists = 0
-        localfolderpath = row[1].split(':', 1)[-1]
         localserveraddress = row[1].split(':', 1)[0]
-        publicfolderpath = row[2].split(':', 1)[-1]
         publicserveraddress = row[2].split(':', 1)[0]
         localserverlatency = utility.ping(localserveraddress)
         publicserverlatency = utility.ping(publicserveraddress)
@@ -120,18 +121,23 @@ def calculate_connectivity():
             latency = localserverlatency
 
         if latency != -1:
-            cursor2 = db.cursor()
-            cursor2.execute("SELECT SlaveServerUUID, StorageUUID FROM Connectivity WHERE SlaveServerUUID = %s AND StorageUUID = %s", (_uuid, row[0]))
+            cursor2 = _db.cursor()
+            cursor2.execute(
+                "SELECT SlaveServerUUID, StorageUUID FROM Connectivity WHERE SlaveServerUUID ='%s' AND StorageUUID = '%s'" % (
+                    _uuid, row[0]))
             results2 = cursor2.fetchall()
             for row2 in results2:
-                cursor.execute("UPDATE Connectivity SET Latency = %s, IPType = %s WHERE SlaveServerUUID = %s AND StorageUUID = %s", (latency, iptype, _uuid, row[0]))
+                cursor.execute(
+                    "UPDATE Connectivity SET Latency = '%s', IPType = '%s' WHERE SlaveServerUUID = '%s' AND StorageUUID = '%s'" % (
+                        latency, iptype, _uuid, row[0]))
                 connection_already_exists = 1
             if connection_already_exists == 0:
                 print "Adding connectivity information between slave %s and storage %s" % (_uuid, row[0])
-                cursor.execute('INSERT INTO Connectivity(SlaveServerUUID, StorageUUID, Latency, IPType, Connected) VALUES(%s,%s,%s,%s,%s)', (_uuid, row[0], localserverlatency, iptype, 0))
+                cursor.execute(
+                    "INSERT INTO Connectivity(SlaveServerUUID, StorageUUID, Latency, IPType, Connected) VALUES('%s','%s','%s','%s','%s')" % (
+                        _uuid, row[0], localserverlatency, iptype, 0))
         else:
             print "No connectivity to Storage Server %s" % row[0]
-    db.close()
     return True
 
 
@@ -142,9 +148,9 @@ def mount_storage():
 
     @rtype : boolean
     """
-    db = utility.dbconnect()
-    connectivitycursor = db.cursor()
-    connectivitycursor.execute("SELECT SlaveServerUUID, StorageUUID, IPType, Connected FROM Connectivity WHERE SlaveServerUUID=%s", _uuid)
+    connectivitycursor = _db.cursor()
+    connectivitycursor.execute(
+        "SELECT SlaveServerUUID, StorageUUID, IPType, Connected FROM Connectivity WHERE SlaveServerUUID='%s'" % _uuid)
     connectivityresults = connectivitycursor.fetchall()
 
     for connectivityrow in connectivityresults:
@@ -152,10 +158,10 @@ def mount_storage():
         iptype = connectivityrow[2]
         connected = connectivityrow[3]
 
-        storagecursor = db.cursor()
+        storagecursor = _db.cursor()
         nfsmount = "-1"
 
-        storagecursor.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID=%s", storageuuid)
+        storagecursor.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID='%s'" % storageuuid)
         storageresults = storagecursor.fetchone()
         if storageresults is not None:
             if iptype == "Local":
@@ -173,21 +179,22 @@ def mount_storage():
                 os.makedirs(nfsmountpath)
             if not os.path.ismount(nfsmountpath):
                 print "Mounting NFS share %s" % nfsmountpath
-                joblist=[]
+                joblist = []
                 joblist.append(Popen(mountnfsshare, shell=True))
                 joblist[0].wait()
-            # if storage is not connected
+                # if storage is not connected
             if connected != 1:
                 if check_nfs_connectivity(nfsmountpath, storageuuid):
-                    cursor3 = db.cursor()
-                    cursor3.execute("UPDATE Connectivity SET Connected=%s WHERE SlaveServerUUID=%s AND StorageUUID=%s", (1, _uuid, storageuuid))
+                    cursor3 = _db.cursor()
+                    cursor3.execute(
+                        "UPDATE Connectivity SET Connected='%s' WHERE SlaveServerUUID='%s' AND StorageUUID='%s'" % (
+                            1, _uuid, storageuuid))
                 else:
                     print "Un-mounting NFS share %s" % nfsmountpath
                     unmountnfsshare = "umount -l %s" % nfsmountpath
-                    joblist=[]
+                    joblist = []
                     joblist.append(Popen(unmountnfsshare, shell=True))
                     joblist[0].wait()
-    db.close()
     return True
 
 
@@ -197,7 +204,7 @@ def check_nfs_connectivity(nfsmountpath, storageuuid):
 
     @rtype : boolean
     @param nfsmountpath:
-    @param storageserveruuid:
+    @param storageuuid:
     @return:
     """
     retval = False
@@ -233,9 +240,9 @@ def check_storage_connected(storageuuid):
     @param storageuuid:
     @return:
     """
-    db = utility.dbconnect()
-    cursor = db.cursor()
-    cursor.execute("SELECT Connected, IPType FROM Connectivity WHERE SlaveServerUUID = %s AND StorageUUID = %s", (_uuid, storageuuid))
+    cursor = _db.cursor()
+    cursor.execute("SELECT Connected, IPType FROM Connectivity WHERE SlaveServerUUID = '%s' AND StorageUUID = '%s'" % (
+        _uuid, storageuuid))
     results = cursor.fetchall()
     isconnected = "No"
     for row in results:
@@ -244,7 +251,6 @@ def check_storage_connected(storageuuid):
                 isconnected = "Local"
             if row[1] == "Public":
                 isconnected = "Public"
-    db.close()
     return isconnected
 
 
@@ -254,9 +260,10 @@ def fetch_jobs():
 
     @return:
     """
-    db = utility.dbconnect()
-    cursor = db.cursor()
-    cursor.execute("SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = %s AND Assigned = %s AND State = %s", (_uuid, 1, 0))
+    cursor = _db.cursor()
+    cursor.execute(
+        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = '%s' AND Assigned = '%s' AND State = '%s'" % (
+            _uuid, 1, 0))
     results = cursor.fetchall()
     for row in results:
         jobuuid = row[0]
@@ -269,8 +276,8 @@ def fetch_jobs():
         storageuuid = row[7]
 
         # check to see if this slave server is busy
-        serverstatecursor = db.cursor()
-        serverstatecursor.execute("SELECT UUID, State FROM Servers WHERE UUID = %s", _uuid)
+        serverstatecursor = _db.cursor()
+        serverstatecursor.execute("SELECT UUID, State FROM Servers WHERE UUID = '%s'" % _uuid)
         serverstateresults = serverstatecursor.fetchone()
         # if this server is not busy then fetch next job
         if serverstateresults[1] == 0:
@@ -280,8 +287,8 @@ def fetch_jobs():
             # if slave server is connected to the storage
             if connected_type != "No":
                 nfsmountpath = ""
-                cursor2 = db.cursor()
-                cursor2.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID = %s", storageuuid)
+                cursor2 = _db.cursor()
+                cursor2.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID = '%s'" % storageuuid)
                 result2 = cursor2.fetchone()
 
                 if connected_type == "Local":
@@ -301,17 +308,18 @@ def fetch_jobs():
                 print jobinput, " ", joboutput
 
                 # set server as busy and job as active
-                cursor2.execute("UPDATE Jobs SET State=%s WHERE UUID=%s AND AssignedServerUUID=%s", (1, jobuuid, _uuid))
-                cursor2.execute("UPDATE Servers SET State=%s WHERE UUID=%s", (1, _uuid))
+                cursor2.execute(
+                    "UPDATE Jobs SET State='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (1, jobuuid, _uuid))
+                cursor2.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (1, _uuid))
                 # run the job
                 run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput)
                 # set server as free and job as finished
-                cursor2.execute("UPDATE Jobs SET State=%s WHERE UUID=%s AND AssignedServerUUID=%s", (2, jobuuid, _uuid))
-                cursor2.execute("UPDATE Servers SET State=%s WHERE UUID=%s", (0, _uuid))
+                cursor2.execute(
+                    "UPDATE Jobs SET State='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (2, jobuuid, _uuid))
+                cursor2.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (0, _uuid))
 
             else:
                 print "Slave server has no connectivity to storage server %s" % storageuuid
-    db.close()
     return True
 
 
@@ -326,44 +334,46 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, job
     @param jobtype:
     @param command:
     @param commandoptions:
-    @param input:
-    @param output:
+    @param jobinput:
+    @param joboutput:
     @return:
     """
-    db = utility.dbconnect()
-    cursor = db.cursor()
+    cursor = _db.cursor()
 
     # if ffmpeg job
     if jobsubtype == "transcode":
         encoder = ffmpegencoder(jobinput, joboutput, commandoptions, True)
         encoder.start()
-        shouldUpdate = False
+        shouldupdate = False
 
-        while encoder.getProgress() != 100 or shouldUpdate:
+        while encoder.getProgress() != 100 or shouldupdate:
             utility.clear()
             # keep the server alive so it doesn't get removed by master
             register_slave_server()
-            print "Args: %s\nProgress: %s complete\nElapsed: %s seconds\nEta: %s seconds" % (encoder.getArgs(), encoder.getProgress(), encoder.getElapsedTime(), encoder.getEta())
-            cursor.execute("UPDATE Jobs SET Progress=%s WHERE UUID=%s AND AssignedServerUUID=%s", (encoder.getProgress(), jobuuid, _uuid))
+            print "Args: %s\nProgress: %s complete\nElapsed: %s seconds\nEta: %s seconds" % (
+                encoder.getArgs(), encoder.getProgress(), encoder.getElapsedTime(), encoder.getEta())
+            cursor.execute("UPDATE Jobs SET Progress='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (
+                encoder.getProgress(), jobuuid, _uuid))
             time.sleep(3)
 
             #allows looping to 100%
-            if shouldUpdate == True:
+            if shouldupdate == True:
                 break
-            shouldUpdate = (encoder.getProgress() == 100)
+            shouldupdate = (encoder.getProgress() == 100)
 
         print "FFmpeg finished with return code: %s" % (encoder.getReturnCode())
         if encoder.getReturnCode() == 0:
             print "Encode took %s seconds" % (encoder.getElapsedTime())
-            print "Encoded at %s x realtime" % (float(encoder.getInputDuration())/float(encoder.getElapsedTime()))
+            print "Encoded at %s x realtime" % (float(encoder.getInputDuration()) / float(encoder.getElapsedTime()))
         else:
             print "An error has occured: %s" % (encoder.getLastOutput())
 
     elif jobsubtype == "frames":
         fps = utility.getFps(jobinput)
         totalframes = utility.getTotalFrames(jobinput, fps)
-        cursor.execute("UPDATE Jobs SET Progress=%s, ResultValue1=%s, ResultValue2=%s WHERE UUID=%s AND AssignedServerUUID=%s", (100, str(totalframes), str(fps), jobuuid, _uuid))
-
+        cursor.execute(
+            "UPDATE Jobs SET Progress='%s', ResultValue1='%s', ResultValue2='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (
+                100, str(totalframes), str(fps), jobuuid, _uuid))
 
     # generic slave job
     else:
@@ -389,8 +399,7 @@ def usage():
     print "-m [path] / --mount [path] : specify temporary storage mount path\n"
 
 
-
-def main(argv):
+def parse_cmd(argv):
     """
 
 
@@ -417,19 +426,18 @@ def main(argv):
             if globals.SLAVE_MOUNT_PREFIX_PATH[-1:] == "/":
                 globals.SLAVE_MOUNT_PREFIX_PATH = globals.SLAVE_MOUNT_PREFIX_PATH[:-1]
 
-    while True:
-        register_slave_server()
-        calculate_connectivity()
-        mount_storage()
-        fetch_jobs()
-        time.sleep(5)
-
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     _uuid = utility.get_uuid()
     _localip = utility.local_ip_address()
     _publicip = utility.public_ip_address()
-    main(sys.argv[1:])
+    parse_cmd(sys.argv[1:])
+    _db = utility.dbconnect()
 
-
+while True:
+    register_slave_server()
+    calculate_connectivity()
+    mount_storage()
+    fetch_jobs()
+    time.sleep(5)
