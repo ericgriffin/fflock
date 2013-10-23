@@ -187,7 +187,7 @@ def split_transcode_jobs():
     """
     jobcursor = _db.cursor()
     jobcursor.execute(
-        "SELECT UUID, JobType, JobSubType, Command, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, Priority, Dependencies, MasterUUID, Progress, ResultValue1, ResultValue2 FROM Jobs WHERE State = '%s' AND JobSubType = '%s'" % (
+        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, Priority, Dependencies, MasterUUID, Progress, ResultValue1, ResultValue2 FROM Jobs WHERE State = '%s' AND JobSubType = '%s'" % (
             2, "frames"))
     jobresults = jobcursor.fetchall()
 
@@ -196,31 +196,40 @@ def split_transcode_jobs():
         deletecursor.execute("DELETE FROM Jobs WHERE UUID = '%s'" % jobrow[0])
 
         jobuuid = jobrow[0]
-        jobinput = jobrow[4]
-        joboutput = jobrow[5]
-        storageuuid = jobrow[9]
-        masteruuid = jobrow[12]
-        totalframes = jobrow[14]
-        fps = jobrow[15]
+        command = jobrow[3]
+        commandoptions = jobrow[4]
+        jobinput = jobrow[5]
+        joboutput = jobrow[6]
+        storageuuid = jobrow[10]
+        masteruuid = jobrow[13]
+        keyframes = jobrow[15].split(",")
+        keyframes_diff = jobrow[16].split(",")
 
         # determine how many active slaves exist
-        num_slaves = number_of_registered_slaves()
+        num_slaves = utility.number_of_registered_slaves()
         # determine length of each sub-clip
-        duration_per_job = float(totalframes) / float(fps) / int(num_slaves)
-        start = 0.0
-        end = duration_per_job
         dependencies = ""
         storage_nfs_path = utility.get_storage_nfs_folder_path(storageuuid)
         merge_textfile = joboutput + "_mergeinput.txt"
         merge_textfile_fullpath = storage_nfs_path + joboutput + "_mergeinput.txt"
+        keyframe_index = 0
+
         # create transcode jobs for each sub-clip
         for num in range(0, num_slaves):
             print "Splitting Job ", jobuuid, " into part ", num
             outfilename, outfileextension = os.path.splitext(joboutput)
-            ffmpeg_startstop = "-flags:v +global_header -ss %f -t %f -y" % (start, end)
-            jobuuid = submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", ffmpeg_startstop, jobinput,
+
+            # if last keyframe, dont specify time period
+            if keyframes_diff[keyframe_index] == "-1":
+                ffmpeg_startstop = "-an -ss %f -y" % float(keyframes[keyframe_index])
+            else:
+                ffmpeg_startstop = "-an -ss %f -t %f -y" % (float(keyframes[keyframe_index]), float(keyframes_diff[keyframe_index]))
+
+            ffmpeg_startstop += commandoptions
+
+            jobuuid = submit_job("Slave", "transcode", "ffmpeg -flags:v +global_header -i %s %s %s", ffmpeg_startstop, jobinput,
                                  joboutput + "_part" + str(num) + outfileextension, "", masteruuid)
-            start += end + 1 / float(fps)
+            keyframe_index += 1
             dependencies += str(jobuuid)
             dependencies += ","
             # write the merge textfile for ffmpeg concat
@@ -313,20 +322,7 @@ def find_server_for_slave_job():
     return server_with_shortest_queue
 
 
-def number_of_registered_slaves():
-    """
 
-
-    @rtype : integer
-    @return:
-    """
-    number_of_slaves = 0
-    slavecursor = _db.cursor()
-    slavecursor.execute("SELECT ServerType FROM Servers WHERE ServerType = '%s'" % "Slave")
-    slaveresults = slavecursor.fetchall()
-    for slaverow in slaveresults:
-        number_of_slaves += 1
-    return number_of_slaves
 
 
 def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, dependencies, masteruuid):

@@ -316,5 +316,5 @@ if __name__ == "__main__":
             register_storage_volume(storage)
         check_slave_connectivity()
         fetch_jobs()
-        #job_cleanup()
+        job_cleanup()
         time.sleep(5)

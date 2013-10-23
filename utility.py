@@ -117,8 +117,8 @@ def getFps(file):
     information = Popen(("ffmpeg", "-i", file), stdout=PIPE, stderr=PIPE)
     #fetching tbr (1), but can also get tbn (2) or tbc (3)
     #examples of fps syntax encountered is 30, 30.00, 30k
-    fpsSearch = search("(\d+\.?\w*) tbr, (\d+\.?\w*) tbn, (\d+\.?\w*) tbc", information.communicate()[1])
-    return fpsSearch.group(1)
+    fpssearch = search("(\d+\.?\w*) tbr, (\d+\.?\w*) tbn, (\d+\.?\w*) tbc", information.communicate()[1])
+    return fpssearch.group(1)
 
 
 def getTotalFrames(file, fps):
@@ -195,3 +195,22 @@ def remove_dependency_jobs(jobuuid):
 
     db.close()
     return True
+
+
+def number_of_registered_slaves():
+    """
+
+
+    @rtype : integer
+    @return:
+    """
+    number_of_slaves = 0
+    db = dbconnect()
+    cursor = db.cursor()
+    slavecursor = db.cursor()
+    slavecursor.execute("SELECT ServerType FROM Servers WHERE ServerType = '%s'" % "Slave")
+    slaveresults = slavecursor.fetchall()
+    for slaverow in slaveresults:
+        number_of_slaves += 1
+    db.close()
+    return number_of_slaves

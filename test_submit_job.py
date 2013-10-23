@@ -135,7 +135,7 @@ def main(argv):
     #submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", " ", "test.mov", "Final.mp4", "", "")
 
     #submit_job("Slave", "frames", "ffmpeg %s -i %s %s", " ", "test.mov", "Final.mp4", "")
-    submit_job("Slave", "frames", "ffmpeg %s -i %s %s", " ", "test.mpg", "test_OUT.mp4", "", "")
+    submit_job("Slave", "frames", "ffmpeg -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test.mpg", "test_OUT.mov", "", "")
 
 
 if __name__ == "__main__":

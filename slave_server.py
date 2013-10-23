@@ -9,6 +9,8 @@ from subprocess import PIPE, Popen
 import signal
 import sys
 import getopt
+import csv
+import StringIO
 from re import search
 
 from ffmpeg_encoder import *
@@ -254,6 +256,57 @@ def check_storage_connected(storageuuid):
     return isconnected
 
 
+def find_keyframes(file, type):
+    """
+
+
+    @rtype : integer
+    @param file:
+    @return:
+    """
+    jobcommand = "ffprobe -show_frames -select_streams %s -print_format csv %s" % (type, file)
+    proc = Popen(jobcommand, shell=True, stdout=PIPE, stderr=PIPE)
+
+    #while proc.poll() is None:
+    #    print "keyframe job not done - waiting"
+    #    time.sleep(3)
+    #    register_slave_server()
+
+    out, err = proc.communicate()
+    keyframedata = csv.reader(StringIO.StringIO(out))
+
+    fps = utility.getFps(file)
+    totalframes = utility.getTotalFrames(file, fps)
+    num_slaves = utility.number_of_registered_slaves()
+    duration_per_job = float(totalframes) / float(fps) / int(num_slaves)
+
+    keyframes = ["0.000000"]
+    keyframe_diff = ["0.00000"]
+    current = 0
+    previous = 0
+    keyframe_index = 0
+
+    print "Duration per job:", duration_per_job
+
+    for row in keyframedata:
+        # find I-frames
+        if row[2] == "1":
+            #print "I-frame at", row[6]
+            current = row[6]
+            if float(current) - float(previous) >= float(duration_per_job):
+                #keyframes[keyframe_count] = row[6]
+                keyframes.append(row[6])
+                keyframe_index += 1
+                keyframe_diff.append("-1")
+                keyframe_diff[keyframe_index - 1] = str(round(round(float(row[6]), 6) - round(float(keyframes[keyframe_index - 1]), 6), 6))
+                previous = current
+                print "Splitting job at I-frame ", row[6]
+
+    print keyframes
+    print keyframe_diff
+    return keyframes, keyframe_diff
+
+
 def fetch_jobs():
     """
 
@@ -369,11 +422,12 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, job
             print "An error has occured: %s" % (encoder.getLastOutput())
 
     elif jobsubtype == "frames":
-        fps = utility.getFps(jobinput)
-        totalframes = utility.getTotalFrames(jobinput, fps)
+        keyframes, keyframes_diff = find_keyframes(jobinput, "v")
+        keyframes_str = ','.join(map(str, keyframes))
+        keyframes_diff_str = ','.join(map(str, keyframes_diff))
         cursor.execute(
             "UPDATE Jobs SET Progress='%s', ResultValue1='%s', ResultValue2='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (
-                100, str(totalframes), str(fps), jobuuid, _uuid))
+                100, keyframes_str, keyframes_diff_str, jobuuid, _uuid))
 
     # generic slave job
     else:
