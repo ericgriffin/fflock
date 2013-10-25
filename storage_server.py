@@ -171,7 +171,7 @@ def fetch_jobs():
         storageuuid = row[7]
 
         if not utility.check_dependencies(jobuuid):
-            break
+            continue
         utility.remove_dependency_jobs(jobuuid)
 
         # check to see if this storage server is busy
@@ -187,10 +187,18 @@ def fetch_jobs():
             nfsmountpath = result2[0].split(':', 1)[-1]
 
             # prepend nfs mount path to input and output file
-            jobinput = nfsmountpath + jobinput
-            joboutput = nfsmountpath + joboutput
 
-            print jobinput, " ", joboutput
+            # if mux job, split inputs and add path before each
+            if jobsubtype == "mux":
+                jobinput_list = jobinput.split(',')
+                jobinput = ""
+                for input in jobinput_list:
+                    jobinput = jobinput + " -i " + nfsmountpath + input
+                joboutput = nfsmountpath + joboutput
+
+            else:
+                jobinput = nfsmountpath + jobinput
+                joboutput = nfsmountpath + joboutput
 
             # set server as busy and job as active
             cursor2.execute(
@@ -221,6 +229,7 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, job
     @return:
     """
     jobcommand = command % (commandoptions, jobinput, joboutput)
+    print "Executing storage job:", jobcommand
     proc = Popen(jobcommand, shell=True, stdout=PIPE)
 
     while proc.poll() is None:
@@ -249,7 +258,7 @@ def job_cleanup():
         jobsubtype = jobrow[2]
         joboutput = jobrow[6]
         storageuuid = jobrow[7]
-        if jobtype == "Storage" and jobsubtype == "merge":
+        if jobtype == "Storage" and jobsubtype == "mux":
             todelete = utility.get_storage_nfs_folder_path(storageuuid) + joboutput + "_*"
             for file in glob.glob(todelete):
                 print "delete ", file

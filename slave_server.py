@@ -432,6 +432,7 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, job
     # generic slave job
     else:
         jobcommand = command % (commandoptions, jobinput, joboutput)
+        print "Executing generic slave job:", jobcommand
         proc = Popen(jobcommand, shell=True, stdout=PIPE)
 
         while proc.poll() is None:

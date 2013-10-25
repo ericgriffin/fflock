@@ -155,13 +155,13 @@ def remove_orphaned_storage_confirmation_files():
     @return:
     """
     storagecursor = _db.cursor()
+    servercursor = _db.cursor()
     storagecursor.execute("SELECT UUID FROM Storage")
     storageresults = storagecursor.fetchall()
     for storagerow in storageresults:
         storagepath = utility.get_storage_nfs_folder_path(storagerow[0])
         todelete = storagepath + "*-*-*-*-*"
         for file in glob.glob(todelete):
-            servercursor = _db.cursor()
             servercursor.execute("SELECT UUID FROM Servers")
             serverresults = servercursor.fetchall()
             delete = 1
@@ -208,38 +208,63 @@ def split_transcode_jobs():
         # determine how many active slaves exist
         num_slaves = utility.number_of_registered_slaves()
         # determine length of each sub-clip
-        dependencies = ""
+        merge_dependencies = ""
+        mux_dependencies = ""
         storage_nfs_path = utility.get_storage_nfs_folder_path(storageuuid)
+
+        outfilename, outfileextension = os.path.splitext(joboutput)
         merge_textfile = joboutput + "_mergeinput.txt"
         merge_textfile_fullpath = storage_nfs_path + joboutput + "_mergeinput.txt"
         keyframe_index = 0
 
+        # create audio demux job
+        demuxjob_uuid = utility.get_uuid()
+        audio_demuxed_filetype = ".wav"
+        audio_demuxed_file = joboutput + "_audio" + audio_demuxed_filetype
+        submit_job(demuxjob_uuid, "Slave", "audio demux", "ffmpeg -y %s -i %s -c copy %s", "-flags:a +global_header", jobinput, audio_demuxed_file,
+                   mux_dependencies, masteruuid)
+        mux_dependencies += str(demuxjob_uuid)
+
         # create transcode jobs for each sub-clip
         for num in range(0, num_slaves):
             print "Splitting Job ", jobuuid, " into part ", num
-            outfilename, outfileextension = os.path.splitext(joboutput)
+
 
             # if last keyframe, dont specify time period
             if keyframes_diff[keyframe_index] == "-1":
                 ffmpeg_startstop = "-an -ss %f -y" % float(keyframes[keyframe_index])
             else:
-                ffmpeg_startstop = "-an -ss %f -t %f -y" % (float(keyframes[keyframe_index]), float(keyframes_diff[keyframe_index]))
+                ffmpeg_startstop = "-an -ss %f -t %f" % (float(keyframes[keyframe_index]), float(keyframes_diff[keyframe_index]))
 
             ffmpeg_startstop += commandoptions
 
-            jobuuid = submit_job("Slave", "transcode", "ffmpeg -flags:v +global_header -i %s %s %s", ffmpeg_startstop, jobinput,
+            jobuuid = submit_job("", "Slave", "transcode", "ffmpeg -y l-flags:v +global_header -i %s %s %s", ffmpeg_startstop, jobinput,
                                  joboutput + "_part" + str(num) + outfileextension, "", masteruuid)
             keyframe_index += 1
-            dependencies += str(jobuuid)
-            dependencies += ","
+            merge_dependencies += str(jobuuid)
+            merge_dependencies += ","
             # write the merge textfile for ffmpeg concat
             with open(merge_textfile_fullpath, "a") as mergefile:
                 mergefile.write("file '" + storage_nfs_path + joboutput + "_part" + str(num) + outfileextension + "'\n")
                 mergefile.close()
-        if dependencies[-1:] == ",":
-            dependencies = dependencies[:-1]
-        submit_job("Storage", "merge", "ffmpeg %s -f concat -i %s -c copy %s", " ", merge_textfile, joboutput,
-                   dependencies, masteruuid)
+
+        if merge_dependencies[-1:] == ",":
+            merge_dependencies = merge_dependencies[:-1]
+
+        # create merge job
+        mergejob_uuid = utility.get_uuid()
+        joboutput_video = joboutput + "_video" + outfileextension
+        submit_job(mergejob_uuid, "Storage", "merge", "ffmpeg -y %s -f concat -i %s -c copy %s", " ", merge_textfile, joboutput_video,
+                   merge_dependencies, masteruuid)
+        if mux_dependencies[-1:] != ",":
+            mux_dependencies += ","
+        mux_dependencies += str(mergejob_uuid)
+
+        # create audio/video mux job
+        muxinput = joboutput_video + "," + audio_demuxed_file
+        submit_job("", "Storage", "mux", "ffmpeg -y %s %s -vcodec copy %s", " ", muxinput, joboutput, mux_dependencies, masteruuid)
+
+
 
 
 def find_storage_UUID_for_job():
@@ -322,10 +347,7 @@ def find_server_for_slave_job():
     return server_with_shortest_queue
 
 
-
-
-
-def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, dependencies, masteruuid):
+def submit_job(jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, dependencies, masteruuid):
     """
 
 
@@ -347,7 +369,8 @@ def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, depe
 
     if masteruuid == "":
         masteruuid = utility.get_uuid()
-    jobuuid = utility.get_uuid()
+    if jobuuid == "":
+        jobuuid = utility.get_uuid()
     jobinputcursor = _db.cursor()
     jobinputcursor.execute(
         "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2) VALUES('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" %
