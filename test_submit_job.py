@@ -135,7 +135,14 @@ def main(argv):
     #submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", " ", "test.mov", "Final.mp4", "", "")
 
     #submit_job("Slave", "frames", "ffmpeg %s -i %s %s", " ", "test.mov", "Final.mp4", "")
-    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test3.mxf", "test_OUT.mov", "", "")
+    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test.mpg", "test1_OUT.mov", "", "")
+    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test2.mpg", "test2_OUT.mov", "", "")
+    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test3.mxf", "test3_OUT.mov", "", "")
+    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test4.wmv", "test4_OUT.mov", "", "")
+    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test5.mpg", "test5_OUT.mov", "", "")
+    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test6.mov", "test6_OUT.mov", "", "")
+    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test7.avi", "test7_OUT.mov", "", "")
+    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test8.mxf", "test8_OUT.mov", "", "")
 
 
 if __name__ == "__main__":
