@@ -90,7 +90,7 @@ def remove_stale_slave_servers():
     cursor.execute("SELECT LastSeen, UUID, ServerType FROM Servers WHERE ServerType = 'Slave'")
     results = cursor.fetchall()
     for row in results:
-        if (timestamp - row[0]) > timedelta(seconds=30):
+        if (timestamp - row[0]) > timedelta(seconds=60):
             print "Removing stale slave server %s" % row[1]
             cursor.execute("DELETE FROM Servers WHERE ServerType = 'Slave' AND UUID = '%s'" % (str(row[1])))
             cursor.execute("DELETE FROM Connectivity WHERE SlaveServerUUID = '%s'" % (str(row[1])))
@@ -178,7 +178,7 @@ def remove_orphaned_storage_confirmation_files():
     return True
 
 
-def split_transcode_jobs():
+def fetch_jobs():
     """
 
 
@@ -187,196 +187,154 @@ def split_transcode_jobs():
     """
     jobcursor = _db.cursor()
     jobcursor.execute(
-        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, Priority, Dependencies, MasterUUID, Progress, ResultValue1, ResultValue2 FROM Jobs WHERE State = '%s' AND JobSubType = '%s'" % (
-            2, "frames"))
+        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, Priority, Dependencies, MasterUUID, Progress, ResultValue1, ResultValue2, JobOptions FROM Jobs")
     jobresults = jobcursor.fetchall()
 
     for jobrow in jobresults:
-        deletecursor = _db.cursor()
-        deletecursor.execute("DELETE FROM Jobs WHERE UUID = '%s'" % jobrow[0])
-
         jobuuid = jobrow[0]
+        jobtype = jobrow[1]
+        jobsubtype = jobrow[2]
         command = jobrow[3]
         commandoptions = jobrow[4]
         jobinput = jobrow[5]
         joboutput = jobrow[6]
+        jobassigned = jobrow[7]
+        jobstate = jobrow[8]
+        jobassignedserveruuid = jobrow[9]
         storageuuid = jobrow[10]
+        jobpriority = jobrow[11]
+        jobdependencies = jobrow[12]
         masteruuid = jobrow[13]
-        keyframes = jobrow[15].split(",")
-        keyframes_diff = jobrow[16].split(",")
+        jobprogress = jobrow[14]
+        resultsvalue1 = jobrow[15]
+        resultsvalue2 = jobrow[16]
+        joboptions = jobrow[17]
 
-        # determine how many active slaves exist
-        num_slaves = utility.number_of_registered_slaves()
-        # determine length of each sub-clip
-        merge_dependencies = ""
-        mux_dependencies = ""
-        storage_nfs_path = utility.get_storage_nfs_folder_path(storageuuid)
+        # deal with master jobs
+        if jobtype == "Master":
+            if jobsubtype == "transcode":
 
-        outfilename, outfileextension = os.path.splitext(joboutput)
-        merge_textfile = joboutput + "_mergeinput.txt"
-        merge_textfile_fullpath = storage_nfs_path + joboutput + "_mergeinput.txt"
-        keyframe_index = 0
+                if jobstate == 0:
+                    updatecursor = _db.cursor()
+                    updatecursor.execute("UPDATE Jobs SET State='%s' WHERE UUID='%s'" % (1, jobuuid))
+                    detect_frames_job_uuid = utility.get_uuid()
+                    utility.submit_job(detect_frames_job_uuid, "Slave", "detect frames", "ffmpeg -y -i %s %s %s", commandoptions, jobinput, joboutput, "", jobuuid, joboptions)
 
-        # create audio demux job
-        demuxjob_uuid = utility.get_uuid()
-        audio_demuxed_filetype = ".wav"
-        audio_demuxed_file = joboutput + "_audio" + audio_demuxed_filetype
-        submit_job(demuxjob_uuid, "Slave", "audio demux", "ffmpeg -y %s -i %s -c copy %s", "-flags:a +global_header", jobinput, audio_demuxed_file,
-                   mux_dependencies, masteruuid)
-        mux_dependencies += str(demuxjob_uuid)
+                if jobstate == 1:
+                    child_jobs = 0
+                    childcursor = _db.cursor()
+                    childcursor.execute("SELECT JobSubType, MasterUUID, State FROM Jobs WHERE MasterUUID='%s'" % (jobuuid))
+                    childresults = childcursor.fetchall()
+                    for row in childresults:
+                        if row[0] == "detect frames":
+                            child_jobs += 1
+                        elif row[2] < 2:
+                            child_jobs += 1
 
-        # create transcode jobs for each sub-clip
-        for num in range(0, num_slaves):
-            print "Splitting Job ", jobuuid, " into part ", num
+                    if child_jobs == 0:
+                        childcursor.execute("DELETE FROM Jobs WHERE MasterUUID='%s' AND State='%s'" % (jobuuid, 2))
+                        childcursor.execute("UPDATE Jobs SET State='%s' WHERE UUID='%s'" % (2, jobuuid))
+
+                if jobstate == 2:
+                    if joboptions == "confirm_framecount":
+                            if resultsvalue1 < resultsvalue2:
+                                print "Transcoded file has", int(resultsvalue2) - int(resultsvalue1), "more frames than the source."
+                            if resultsvalue1 > resultsvalue2:
+                                print "Transcoded file has", int(resultsvalue1) - int(resultsvalue2), "less frames than the source."
+                            if resultsvalue1 == resultsvalue2:
+                                print "Source and Transcoded file have the same number of frames:", resultsvalue1
+                    deletecursor = _db.cursor()
+                    deletecursor.execute("DELETE FROM Jobs WHERE UUID='%s'" % jobuuid)
+
+        # if detect frames job is done, initiate split-stitch transcode process
+        if jobtype == "Slave" and jobsubtype == "detect frames" and jobstate == 2:
+            deletecursor = _db.cursor()
+            deletecursor.execute("DELETE FROM Jobs WHERE UUID = '%s'" % jobuuid)
+
+            mux_dependencies = ""
+
+            # create audio demux job
+            demuxjob_uuid = utility.get_uuid()
+            audio_demuxed_filetype = ".wav"
+            audio_demuxed_file = joboutput + "_audio" + audio_demuxed_filetype
+            utility.submit_job(demuxjob_uuid, "Slave", "audio demux", "ffmpeg -y %s -i %s -vn %s", "-flags:a +global_header", jobinput, audio_demuxed_file,
+            mux_dependencies, masteruuid, "")
+            mux_dependencies += str(demuxjob_uuid)
+
+            merge_dependencies, merge_textfile = split_transcode_job(jobuuid, command, commandoptions, jobinput, joboutput, storageuuid, masteruuid, resultsvalue1, resultsvalue2)
+
+            # create merge job
+            mergejob_uuid = utility.get_uuid()
+            outfilename, outfileextension = os.path.splitext(joboutput)
+            joboutput_video = joboutput + "_video" + outfileextension
+            utility.submit_job(mergejob_uuid, "Storage", "video merge", "ffmpeg -y %s -f concat -i %s -c copy %s", " ", merge_textfile, joboutput_video,
+                       merge_dependencies, masteruuid, "")
+            if mux_dependencies[-1:] != ",":
+                mux_dependencies += ","
+            mux_dependencies += str(mergejob_uuid)
+
+            # create audio/video mux job
+            muxinput = joboutput_video + "," + audio_demuxed_file
+            muxjob_uuid = utility.get_uuid()
+            utility.submit_job(muxjob_uuid, "Storage", "a/v mux", "ffmpeg -y %s %s -vcodec copy %s", " ", muxinput, joboutput, mux_dependencies, masteruuid, "")
+
+            if utility.find_job_options_for_job(masteruuid) == "confirm_framecount":
+                utility.submit_job("", "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", "input", jobinput, " ", muxjob_uuid, masteruuid, "")
+                utility.submit_job("", "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", "output", joboutput, " ", muxjob_uuid, masteruuid, "")
+
+    return True
 
 
-            # if last keyframe, dont specify time period
-            if keyframes_diff[keyframe_index] == "-1":
-                ffmpeg_startstop = "-an -ss %f -y" % float(keyframes[keyframe_index])
-            else:
-                ffmpeg_startstop = "-an -ss %f -t %f" % (float(keyframes[keyframe_index]), float(keyframes_diff[keyframe_index]))
-
-            ffmpeg_startstop += commandoptions
-
-            jobuuid = submit_job("", "Slave", "transcode", "ffmpeg -y l-flags:v +global_header -i %s %s %s", ffmpeg_startstop, jobinput,
-                                 joboutput + "_part" + str(num) + outfileextension, "", masteruuid)
-            keyframe_index += 1
-            merge_dependencies += str(jobuuid)
-            merge_dependencies += ","
-            # write the merge textfile for ffmpeg concat
-            with open(merge_textfile_fullpath, "a") as mergefile:
-                mergefile.write("file '" + storage_nfs_path + joboutput + "_part" + str(num) + outfileextension + "'\n")
-                mergefile.close()
-
-        if merge_dependencies[-1:] == ",":
-            merge_dependencies = merge_dependencies[:-1]
-
-        # create merge job
-        mergejob_uuid = utility.get_uuid()
-        joboutput_video = joboutput + "_video" + outfileextension
-        submit_job(mergejob_uuid, "Storage", "merge", "ffmpeg -y %s -f concat -i %s -c copy %s", " ", merge_textfile, joboutput_video,
-                   merge_dependencies, masteruuid)
-        if mux_dependencies[-1:] != ",":
-            mux_dependencies += ","
-        mux_dependencies += str(mergejob_uuid)
-
-        # create audio/video mux job
-        muxinput = joboutput_video + "," + audio_demuxed_file
-        submit_job("", "Storage", "mux", "ffmpeg -y %s %s -vcodec copy %s", " ", muxinput, joboutput, mux_dependencies, masteruuid)
-
-
-
-
-def find_storage_UUID_for_job():
+def split_transcode_job(jobuuid, command, commandoptions, jobinput, joboutput, storageuuid, masteruuid, resultsvalue1, resultsvalue2):
     """
 
-
-
-    @rtype : storage uuid
-    @return:
-    """
-    storageuuid = ""
-    storagecursor = _db.cursor()
-    storagecursor.execute("SELECT UUID FROM Storage WHERE StorageType = '%s'" % "NFS")
-    storageresults = storagecursor.fetchall()
-    for storagerow in storageresults:
-        storageuuid = storagerow[0]
-    return storageuuid
-
-
-def find_server_for_storage_job():
-    """
-
-
-
-    @rtype : storage server uuid
-    @return:
-    """
-    storagecursor = _db.cursor()
-    storagecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = '%s'" % "Storage")
-    storageresults = storagecursor.fetchall()
-
-    #find best slave server to assign the job
-    shortest_queue = 1000000
-    server_with_shortest_queue = ""
-    for storagerow in storageresults:
-        current_queue = 0
-        storageserveruuid = storagerow[0]
-        jobcursor = _db.cursor()
-        jobcursor.execute(
-            "SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = '%s'" % str(
-                storageserveruuid))
-        jobresults = jobcursor.fetchall()
-        for jobrow in jobresults:
-            current_queue += 1
-        if current_queue < shortest_queue:
-            server_with_shortest_queue = storageserveruuid
-            shortest_queue = current_queue
-    return server_with_shortest_queue
-
-
-def find_server_for_slave_job():
-    """
-
-
-
-    @rtype : slave server uuid
-    @return:
-    """
-    slaveserveruuid = "NA"
-    slavecursor = _db.cursor()
-    slavecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = '%s'" % "Slave")
-    slaveresults = slavecursor.fetchall()
-
-    #find best slave server to assign the job
-    shortest_queue = 1000000
-    server_with_shortest_queue = ""
-    for slaverow in slaveresults:
-        current_queue = 0
-        slaveserveruuid = slaverow[0]
-        jobcursor = _db.cursor()
-        jobcursor.execute(
-            "SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = '%s'" % str(
-                slaveserveruuid))
-        jobresults = jobcursor.fetchall()
-        for jobrow in jobresults:
-            current_queue += 1
-        if current_queue < shortest_queue:
-            server_with_shortest_queue = slaveserveruuid
-            shortest_queue = current_queue
-    return server_with_shortest_queue
-
-
-def submit_job(jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, dependencies, masteruuid):
-    """
 
 
     @rtype : boolean
-    @param jobtype:
-    @param command:
-    @param commandoptions:
-    @param input:
-    @param output:
     """
-    timestamp = datetime.now()
+    merge_dependencies = ""
+    keyframes = resultsvalue1.split(",")
+    keyframes_diff = resultsvalue2.split(",")
 
-    storageuuid = find_storage_UUID_for_job()
-    assignedserveruuid = ""
-    if jobtype == "Slave":
-        assignedserveruuid = find_server_for_slave_job()
-    elif jobtype == "Storage":
-        assignedserveruuid = find_server_for_storage_job()
+    # determine how many active slaves exist
+    num_slaves = utility.number_of_registered_slaves()
+    # determine length of each sub-clip
 
-    if masteruuid == "":
-        masteruuid = utility.get_uuid()
-    if jobuuid == "":
-        jobuuid = utility.get_uuid()
-    jobinputcursor = _db.cursor()
-    jobinputcursor.execute(
-        "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2) VALUES('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" %
-        (jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid,
-         masteruuid, 1, dependencies, 0, timestamp, timestamp, "", ""))
-    return jobuuid
+    storage_nfs_path = utility.get_storage_nfs_folder_path(storageuuid)
+
+    outfilename, outfileextension = os.path.splitext(joboutput)
+    merge_textfile = joboutput + "_mergeinput.txt"
+    merge_textfile_fullpath = storage_nfs_path + joboutput + "_mergeinput.txt"
+    keyframe_index = 0
+
+    # create transcode jobs for each sub-clip
+    for num in range(0, num_slaves):
+        print "Splitting Job ", jobuuid, " into part ", num
+
+        # if last keyframe, dont specify time period
+        if keyframes_diff[keyframe_index] == "-1":
+            ffmpeg_startstop = "-an -ss %f -y" % float(keyframes[keyframe_index])
+        else:
+            ffmpeg_startstop = "-an -ss %f -t %f" % (float(keyframes[keyframe_index]), float(keyframes_diff[keyframe_index]))
+
+        ffmpeg_startstop += commandoptions
+
+        jobuuid = utility.submit_job("", "Slave", "transcode", "ffmpeg -y l-flags:v +global_header -i %s %s %s", ffmpeg_startstop, jobinput,
+                             joboutput + "_part" + str(num) + outfileextension, "", masteruuid, "")
+        keyframe_index += 1
+        merge_dependencies += str(jobuuid)
+        merge_dependencies += ","
+        # write the merge textfile for ffmpeg concat
+        with open(merge_textfile_fullpath, "a") as mergefile:
+            mergefile.write("file '" + storage_nfs_path + joboutput + "_part" + str(num) + outfileextension + "'\n")
+            mergefile.close()
+
+    if merge_dependencies[-1:] == ",":
+        merge_dependencies = merge_dependencies[:-1]
+
+    return merge_dependencies, merge_textfile
+
+
 
 
 def cleanup_tasks():
@@ -435,6 +393,6 @@ if __name__ == "__main__":
 
     while True:
         register_master_server(_uuid)
-        split_transcode_jobs()
+        fetch_jobs()
         cleanup_tasks()
-        time.sleep(5)
+        time.sleep(2)

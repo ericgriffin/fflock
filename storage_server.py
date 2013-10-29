@@ -8,6 +8,7 @@ import utility
 import signal
 import getopt
 import glob
+from xml.dom import minidom
 from subprocess import PIPE, Popen
 from datetime import datetime, timedelta
 
@@ -149,7 +150,7 @@ def check_slave_connectivity():
     return True
 
 
-def fetch_jobs():
+def fetch_db_jobs():
     """
 
 
@@ -189,7 +190,7 @@ def fetch_jobs():
             # prepend nfs mount path to input and output file
 
             # if mux job, split inputs and add path before each
-            if jobsubtype == "mux":
+            if jobsubtype == "a/v mux":
                 jobinput_list = jobinput.split(',')
                 jobinput = ""
                 for input in jobinput_list:
@@ -208,7 +209,7 @@ def fetch_jobs():
             run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput)
             # set server as free and job as finished
             cursor2.execute(
-                "UPDATE Jobs SET State='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (2, jobuuid, _uuid))
+                "UPDATE Jobs SET State='%s', Progress='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (2, 100, jobuuid, _uuid))
             cursor2.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (0, _uuid))
     return True
 
@@ -258,12 +259,47 @@ def job_cleanup():
         jobsubtype = jobrow[2]
         joboutput = jobrow[6]
         storageuuid = jobrow[7]
-        if jobtype == "Storage" and jobsubtype == "mux":
+        if jobtype == "Storage" and jobsubtype == "a/v mux":
             todelete = utility.get_storage_nfs_folder_path(storageuuid) + joboutput + "_*"
             for file in glob.glob(todelete):
                 print "delete ", file
                 os.remove(file)
             deletecursor.execute("DELETE FROM Jobs WHERE UUID='%s'" % jobuuid)
+    return True
+
+
+def check_xml_submits():
+
+    """
+
+
+    @rtype : Boolean
+    @return:
+    """
+    submitfiles = storage
+
+    if submitfiles[-1:] != "/":
+        submitfiles += "/"
+    submitfiles += "*_fflock.xml"
+    for file in glob.glob(submitfiles):
+        submitted = 0
+        print "Submitting jobs from: ", file
+        # parse job file
+        xmldoc = minidom.parse(file)
+        joblist = xmldoc.getElementsByTagName('job')
+        for s in joblist:
+            submitted = 1
+            type = s.attributes['type'].value
+            input = s.attributes['input'].value
+            output = s.attributes['output'].value
+            options = s.attributes['options'].value
+            joboptions = s.attributes['joboptions'].value
+
+            if type == "transcode":
+                utility.submit_job("", "Master", "transcode", "ffmpeg -y -i %s %s %s", options, input, output, "", "", joboptions)
+                #utility.submit_job("", "Slave", "detect frames", "ffmpeg -y -i %s %s %s", options, input, output, "", "", joboptions)
+        if submitted == 1:
+            os.rename(file, file + ".submitted")
     return True
 
 
@@ -324,6 +360,7 @@ if __name__ == "__main__":
         if register_storage_server():
             register_storage_volume(storage)
         check_slave_connectivity()
-        fetch_jobs()
+        check_xml_submits()
+        fetch_db_jobs()
         job_cleanup()
-        time.sleep(5)
+        time.sleep(2)

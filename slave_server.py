@@ -216,7 +216,7 @@ def check_nfs_connectivity(nfsmountpath, storageuuid):
     testfile = open(filename, "w")
     testfile.write(storageuuid)
     testfile.close()
-    time.sleep(5)
+    time.sleep(2)
     # check for confirmation file
     if os.path.exists(filename_confirm):
         testfileconfirm = open(filename_confirm, "r")
@@ -307,7 +307,7 @@ def find_keyframes(file, type):
     return keyframes, keyframe_diff
 
 
-def fetch_jobs():
+def fetch_db_jobs():
     """
 
 
@@ -327,11 +327,18 @@ def fetch_jobs():
         jobinput = row[5]
         joboutput = row[6]
         storageuuid = row[7]
+        masteruuid = row[10]
+
+        if not utility.check_dependencies(jobuuid):
+            continue
+        utility.remove_dependency_jobs(jobuuid)
 
         # check to see if this slave server is busy
         serverstatecursor = _db.cursor()
         serverstatecursor.execute("SELECT UUID, State FROM Servers WHERE UUID = '%s'" % _uuid)
         serverstateresults = serverstatecursor.fetchone()
+        if serverstateresults is None:
+            continue
         # if this server is not busy then fetch next job
         if serverstateresults[1] == 0:
             # see if this server is connected to the storage
@@ -365,10 +372,10 @@ def fetch_jobs():
                     "UPDATE Jobs SET State='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (1, jobuuid, _uuid))
                 cursor2.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (1, _uuid))
                 # run the job
-                run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput)
+                run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput, masteruuid)
                 # set server as free and job as finished
                 cursor2.execute(
-                    "UPDATE Jobs SET State='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (2, jobuuid, _uuid))
+                    "UPDATE Jobs SET State='%s', Progress='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (2, 100, jobuuid, _uuid))
                 cursor2.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (0, _uuid))
 
             else:
@@ -376,7 +383,7 @@ def fetch_jobs():
     return True
 
 
-def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput):
+def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput, master_uuid):
     """
 
 
@@ -421,13 +428,30 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, job
         else:
             print "An error has occured: %s" % (encoder.getLastOutput())
 
-    elif jobsubtype == "frames":
+    elif jobsubtype == "detect frames":
         keyframes, keyframes_diff = find_keyframes(jobinput, "v")
         keyframes_str = ','.join(map(str, keyframes))
         keyframes_diff_str = ','.join(map(str, keyframes_diff))
         cursor.execute(
             "UPDATE Jobs SET Progress='%s', ResultValue1='%s', ResultValue2='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (
                 100, keyframes_str, keyframes_diff_str, jobuuid, _uuid))
+
+    elif jobsubtype == "count frames":
+        num_frames = 0
+        jobcommand = command % jobinput
+        print "Executing frame-count slave job:", jobcommand
+        proc = Popen(jobcommand, shell=True, stdout=PIPE)
+
+        while proc.poll() is None:
+            time.sleep(3)
+            register_slave_server()
+        num_frames = proc.communicate()[0].strip('\n')
+        print "Number of frames:", num_frames
+        print "Commandoptions:", commandoptions
+        if commandoptions == "input":
+            cursor.execute("UPDATE Jobs SET ResultValue1='%s' WHERE UUID='%s'" % (str(num_frames), str(master_uuid)))
+        if commandoptions == "output":
+            cursor.execute("UPDATE Jobs SET ResultValue2='%s' WHERE UUID='%s'" % (str(num_frames), str(master_uuid)))
 
     # generic slave job
     else:
@@ -494,5 +518,5 @@ while True:
     register_slave_server()
     calculate_connectivity()
     mount_storage()
-    fetch_jobs()
-    time.sleep(5)
+    fetch_db_jobs()
+    time.sleep(2)

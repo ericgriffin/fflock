@@ -11,6 +11,7 @@ import re
 import subprocess
 from subprocess import PIPE, Popen
 from re import search
+from datetime import datetime, timedelta
 from urllib2 import urlopen
 
 
@@ -160,15 +161,18 @@ def check_dependencies(jobuuid):
     cursor.execute(
         "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE UUID = '%s'" % jobuuid)
     results = cursor.fetchone()
-    dependencies = results[9]
-    dependency_list = dependencies.split(",")
-    depcursor = db.cursor()
-    for dep_jobuuid in dependency_list:
-        depcursor.execute("SELECT State FROM Jobs WHERE UUID = '%s'" % dep_jobuuid)
-        depresult = depcursor.fetchone()
-        if depresult[0] != 2:
-            dependencies_cleared = 0
-            print "Dependent Job ", dep_jobuuid, " not finished - waiting."
+    if results is not None:
+        dependencies = results[9]
+        dependency_list = dependencies.split(",")
+        if dependency_list is not None:
+            depcursor = db.cursor()
+            for dep_jobuuid in dependency_list:
+                depcursor.execute("SELECT State FROM Jobs WHERE UUID = '%s'" % dep_jobuuid)
+                depresult = depcursor.fetchall()
+                for result in depresult:
+                    if result[0] != 2:
+                        dependencies_cleared = 0
+                        print "Dependent Job ", dep_jobuuid, " not finished - waiting."
     db.close()
     return dependencies_cleared
 
@@ -214,3 +218,198 @@ def number_of_registered_slaves():
         number_of_slaves += 1
     db.close()
     return number_of_slaves
+
+
+def number_of_connected_slaves(storageuuid):
+    """
+
+
+    @rtype : integer
+    @return:
+    """
+    number_of_connected_slaves = 0
+    db = dbconnect()
+    cursor = db.cursor()
+    cursor.execute("SELECT StorageUUID, Connected FROM Connectivity WHERE StorageUUID = '%s'" % storageuuid)
+    results = cursor.fetchall()
+    for row in results:
+        number_of_connected_slaves += 1
+    db.close()
+    return number_of_connected_slaves
+
+
+def find_server_storage_UUIDs(serveruuid):
+    """
+
+
+    @rtype : list
+    @return:
+    """
+    storageuuids = []
+    db = dbconnect()
+    cursor = db.cursor()
+    cursor.execute("SELECT UUID, ServerUUID FROM Storage WHERE ServerUUID = '%s'" % serveruuid)
+    results = cursor.fetchall()
+    for row in results:
+        storageuuids.append(row[0])
+    db.close()
+    return storageuuids
+
+
+def find_master_UUID_for_job(uuid):
+    """
+
+
+
+    @rtype : string
+    @return: master uuid
+    """
+    db = dbconnect()
+    masteruuid = ""
+    cursor = db.cursor()
+    cursor.execute("SELECT MasterUUID FROM Jobs WHERE UUID = '%s'" % uuid)
+    results = cursor.fetchall()
+    for row in results:
+        masteruuid = row[0]
+    db.close()
+    return masteruuid
+
+
+def find_job_options_for_job(uuid):
+    """
+
+
+
+    @rtype : string
+    @return: master uuid
+    """
+    db = dbconnect()
+    joboptions = ""
+    cursor = db.cursor()
+    cursor.execute("SELECT JobOptions FROM Jobs WHERE UUID = '%s'" % uuid)
+    results = cursor.fetchall()
+    for row in results:
+        joboptions = row[0]
+    db.close()
+    return joboptions
+
+
+def find_storage_UUID_for_job():
+    """
+
+
+
+    @rtype : storage uuid
+    @return:
+    """
+    db = dbconnect()
+    storageuuid = ""
+    storagecursor = db.cursor()
+    storagecursor.execute("SELECT UUID FROM Storage WHERE StorageType = '%s'" % "NFS")
+    storageresults = storagecursor.fetchall()
+    for storagerow in storageresults:
+        storageuuid = storagerow[0]
+    db.close()
+    return storageuuid
+
+
+def find_server_for_storage_job():
+    """
+
+
+
+    @rtype : storage server uuid
+    @return:
+    """
+    db = dbconnect()
+    storagecursor = db.cursor()
+    storagecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = '%s'" % "Storage")
+    storageresults = storagecursor.fetchall()
+
+    #find best slave server to assign the job
+    shortest_queue = 1000000
+    server_with_shortest_queue = ""
+    for storagerow in storageresults:
+        current_queue = 0
+        storageserveruuid = storagerow[0]
+        jobcursor = db.cursor()
+        jobcursor.execute(
+            "SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = '%s'" % str(
+                storageserveruuid))
+        jobresults = jobcursor.fetchall()
+        for jobrow in jobresults:
+            current_queue += 1
+        if current_queue < shortest_queue:
+            server_with_shortest_queue = storageserveruuid
+            shortest_queue = current_queue
+    db.close()
+    return server_with_shortest_queue
+
+
+def find_server_for_slave_job():
+    """
+
+
+
+    @rtype : slave server uuid
+    @return:
+    """
+    db = dbconnect()
+    slaveserveruuid = "NA"
+    slavecursor = db.cursor()
+    slavecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = '%s'" % "Slave")
+    slaveresults = slavecursor.fetchall()
+
+    #find best slave server to assign the job
+    shortest_queue = 1000000
+    server_with_shortest_queue = ""
+    for slaverow in slaveresults:
+        current_queue = 0
+        slaveserveruuid = slaverow[0]
+        jobcursor = db.cursor()
+        jobcursor.execute(
+            "SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = '%s'" % str(
+                slaveserveruuid))
+        jobresults = jobcursor.fetchall()
+        for jobrow in jobresults:
+            current_queue += 1
+        if current_queue < shortest_queue:
+            server_with_shortest_queue = slaveserveruuid
+            shortest_queue = current_queue
+    db.close()
+    return server_with_shortest_queue
+
+
+def submit_job(jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, dependencies, masteruuid, joboptions):
+    """
+
+
+    @rtype : boolean
+    @param jobtype:
+    @param command:
+    @param commandoptions:
+    @param input:
+    @param output:
+    """
+    db = dbconnect()
+    timestamp = datetime.now()
+
+    storageuuid = find_storage_UUID_for_job()
+    assignedserveruuid = ""
+    if jobtype == "Slave":
+        assignedserveruuid = find_server_for_slave_job()
+    elif jobtype == "Storage":
+        assignedserveruuid = find_server_for_storage_job()
+
+    #if masteruuid == "":
+    #    masteruuid = get_uuid()
+    if jobuuid == "":
+        jobuuid = get_uuid()
+    jobinputcursor = db.cursor()
+    jobinputcursor.execute(
+        "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2, JobOptions) VALUES('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" %
+        (jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid,
+         masteruuid, 1, dependencies, 0, timestamp, timestamp, "", "", joboptions))
+    db.commit()
+    db.close()
+    return jobuuid

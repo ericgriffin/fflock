@@ -9,99 +9,6 @@ import sys
 import getopt
 
 
-def find_server_for_storage_job():
-    """
-
-
-
-    @rtype : storage server uuid
-    @return:
-    """
-    return ""
-
-
-def find_server_for_slave_job():
-    """
-
-
-
-    @rtype : slave server uuid
-    @return:
-    """
-    db = utility.dbconnect()
-    slavecursor = db.cursor()
-    slavecursor.execute("SELECT UUID, ServerType, State FROM Servers WHERE ServerType = '%s'" % "Slave")
-    slaveresults = slavecursor.fetchall()
-
-    #find best slave server to assign the job
-    shortest_queue = 1000000
-    server_with_shortest_queue = ""
-    for slaverow in slaveresults:
-        current_queue = 0
-        slaveserveruuid = slaverow[0]
-        jobcursor = db.cursor()
-        jobcursor.execute(
-            "SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = '%s'" % str(
-                slaveserveruuid))
-        jobresults = jobcursor.fetchall()
-        for jobrow in jobresults:
-            current_queue += 1
-        if current_queue < shortest_queue:
-            server_with_shortest_queue = slaveserveruuid
-            shortest_queue = current_queue
-    return server_with_shortest_queue
-
-
-def find_storage_UUID_for_job():
-    """
-
-
-
-    @rtype : storage uuid
-    @return:
-    """
-    storageuuid = ""
-    db = utility.dbconnect()
-    storagecursor = db.cursor()
-    storagecursor.execute("SELECT UUID FROM Storage WHERE StorageType = '%s'" % "NFS")
-    storageresults = storagecursor.fetchall()
-    for storagerow in storageresults:
-        storageuuid = storagerow[0]
-    return storageuuid
-
-
-def submit_job(jobtype, jobsubtype, command, commandoptions, input, output, dependencies, masteruuid):
-    """
-
-
-    @rtype : boolean
-    @param jobtype:
-    @param command:
-    @param commandoptions:
-    @param input:
-    @param output:
-    """
-    db = utility.dbconnect()
-
-    storageuuid = find_storage_UUID_for_job()
-    assignedserveruuid = "NA"
-    if jobtype == "Slave":
-        assignedserveruuid = find_server_for_slave_job()
-    elif jobtype == "Storage":
-        assignedserveruuid = find_server_for_storage_job()
-
-    if masteruuid == "":
-        masteruuid = utility.get_uuid()
-    jobuuid = utility.get_uuid()
-    jobinputcursor = db.cursor()
-    jobinputcursor.execute(
-        "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2) VALUES('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" %
-        (jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid,
-         masteruuid, 1, dependencies, 0, _timestamp, _timestamp, "", ""))
-    db.close()
-    return True
-
-
 def main(argv):
     """
 
@@ -135,14 +42,14 @@ def main(argv):
     #submit_job("Slave", "transcode", "ffmpeg %s -i %s %s", " ", "test.mov", "Final.mp4", "", "")
 
     #submit_job("Slave", "frames", "ffmpeg %s -i %s %s", " ", "test.mov", "Final.mp4", "")
-    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test.mpg", "test1_OUT.mov", "", "")
-    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test2.mpg", "test2_OUT.mov", "", "")
-    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test3.mxf", "test3_OUT.mov", "", "")
-    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test4.wmv", "test4_OUT.mov", "", "")
-    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test5.mpg", "test5_OUT.mov", "", "")
-    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test6.mov", "test6_OUT.mov", "", "")
-    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test7.avi", "test7_OUT.mov", "", "")
-    submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test8.mxf", "test8_OUT.mov", "", "")
+    #utility.submit_job("", "Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test.mpg", "test1_OUT.mov", "", "", "")
+    #utility.submit_job("", "Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test2.mpg", "test2_OUT.mov", "", "", "")
+    utility.submit_job("", "Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test3.mxf", "test3_OUT.mov", "", "", "")
+    #submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test4.wmv", "test4_OUT.mov", "", "", "")
+    #submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test5.mpg", "test5_OUT.mov", "", "", "")
+    #submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test6.mov", "test6_OUT.mov", "", "", "")
+    #submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test7.avi", "test7_OUT.mov", "", "", "")
+    #submit_job("Slave", "frames", "ffmpeg -y -i %s %s %s", " -c:v prores -profile:v 3 -quant_mat hq -vendor ap10 -flags ildct+ilme -c:a pcm_s24le -ac 2 ", "test8.mxf", "test8_OUT.mov", "", "", "")
 
 
 if __name__ == "__main__":
