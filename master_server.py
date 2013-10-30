@@ -9,6 +9,8 @@ import utility
 import signal
 import getopt
 import glob
+import boto
+import boto.s3.connection
 
 
 def signal_handler(signal, frame):
@@ -58,7 +60,7 @@ def register_master_server(uuid):
             _localip, _publicip, timestamp)
     else:
         if results[0] == _localip and results[1] == _publicip and str(results[3]) == str(uuid):
-            print "Registering Master Server %s heartbeat at %s" % (_uuid, timestamp)
+            #print "Registering Master Server %s heartbeat at %s" % (_uuid, timestamp)
             cursor.execute(
                 "UPDATE Servers SET LastSeen = '%s' WHERE LocalIP = '%s' AND PublicIP = '%s' AND ServerType = 'Master' AND UUID = '%s'" % (
                     timestamp, _localip, _publicip, uuid))
@@ -218,7 +220,7 @@ def fetch_jobs():
                     updatecursor = _db.cursor()
                     updatecursor.execute("UPDATE Jobs SET State='%s' WHERE UUID='%s'" % (1, jobuuid))
                     detect_frames_job_uuid = utility.get_uuid()
-                    utility.submit_job(detect_frames_job_uuid, "Slave", "detect frames", "ffmpeg -y -i %s %s %s", commandoptions, jobinput, joboutput, "", jobuuid, joboptions)
+                    utility.submit_job(detect_frames_job_uuid, "Slave", "detect frames", " ", commandoptions, jobinput, joboutput, "", jobuuid, joboptions)
 
                 if jobstate == 1:
                     child_jobs = 0
@@ -236,7 +238,9 @@ def fetch_jobs():
                         childcursor.execute("UPDATE Jobs SET State='%s' WHERE UUID='%s'" % (2, jobuuid))
 
                 if jobstate == 2:
-                    if joboptions == "confirm_framecount":
+                    job_options = joboptions.split(",")
+                    for option in job_options:
+                        if option == "confirm_framecount":
                             if resultsvalue1 < resultsvalue2:
                                 print "Transcoded file has", int(resultsvalue2) - int(resultsvalue1), "more frames than the source."
                             if resultsvalue1 > resultsvalue2:
@@ -257,11 +261,11 @@ def fetch_jobs():
             demuxjob_uuid = utility.get_uuid()
             audio_demuxed_filetype = ".wav"
             audio_demuxed_file = joboutput + "_audio" + audio_demuxed_filetype
-            utility.submit_job(demuxjob_uuid, "Slave", "audio demux", "ffmpeg -y %s -i %s -vn %s", "-flags:a +global_header", jobinput, audio_demuxed_file,
+            utility.submit_job(demuxjob_uuid, "Slave", "audio demux", "ffmpeg -y %s -i %s -vn %s", " ", jobinput, audio_demuxed_file,
             mux_dependencies, masteruuid, "")
             mux_dependencies += str(demuxjob_uuid)
 
-            merge_dependencies, merge_textfile = split_transcode_job(jobuuid, command, commandoptions, jobinput, joboutput, storageuuid, masteruuid, resultsvalue1, resultsvalue2)
+            merge_dependencies, merge_textfile = split_transcode_job(jobuuid, command, commandoptions, jobinput, joboutput, storageuuid, masteruuid, resultsvalue1, resultsvalue2, joboptions)
 
             # create merge job
             mergejob_uuid = utility.get_uuid()
@@ -278,14 +282,16 @@ def fetch_jobs():
             muxjob_uuid = utility.get_uuid()
             utility.submit_job(muxjob_uuid, "Storage", "a/v mux", "ffmpeg -y %s %s -vcodec copy %s", " ", muxinput, joboutput, mux_dependencies, masteruuid, "")
 
-            if utility.find_job_options_for_job(masteruuid) == "confirm_framecount":
-                utility.submit_job("", "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", "input", jobinput, " ", muxjob_uuid, masteruuid, "")
-                utility.submit_job("", "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", "output", joboutput, " ", muxjob_uuid, masteruuid, "")
+            job_options = utility.find_job_options_for_job(masteruuid).split(",")
+            for option in job_options:
+                if option == "confirm_framecount":
+                    utility.submit_job("", "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", "input", jobinput, " ", muxjob_uuid, masteruuid, "")
+                    utility.submit_job("", "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", "output", joboutput, " ", muxjob_uuid, masteruuid, "")
 
     return True
 
 
-def split_transcode_job(jobuuid, command, commandoptions, jobinput, joboutput, storageuuid, masteruuid, resultsvalue1, resultsvalue2):
+def split_transcode_job(jobuuid, command, commandoptions, jobinput, joboutput, storageuuid, masteruuid, resultsvalue1, resultsvalue2, joboptions):
     """
 
 
@@ -319,8 +325,8 @@ def split_transcode_job(jobuuid, command, commandoptions, jobinput, joboutput, s
 
         ffmpeg_startstop += commandoptions
 
-        jobuuid = utility.submit_job("", "Slave", "transcode", "ffmpeg -y l-flags:v +global_header -i %s %s %s", ffmpeg_startstop, jobinput,
-                             joboutput + "_part" + str(num) + outfileextension, "", masteruuid, "")
+        jobuuid = utility.submit_job("", "Slave", "transcode", "ffmpeg -y -i %s %s %s", ffmpeg_startstop, jobinput,
+                             joboutput + "_part" + str(num) + outfileextension, "", masteruuid, joboptions)
         keyframe_index += 1
         merge_dependencies += str(jobuuid)
         merge_dependencies += ","

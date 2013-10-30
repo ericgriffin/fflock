@@ -3,10 +3,11 @@ import re
 import os
 import time
 import threading
+import globals
 
 
 class ffmpegencoder(threading.Thread):
-    def __init__(self, inpath, outpath, codecSettings, overwrite, extraArgs=" "):
+    def __init__(self, inpath, outpath, codecSettings, encoder, overwrite, extraArgs=" "):
         """
 
 
@@ -18,10 +19,11 @@ class ffmpegencoder(threading.Thread):
         @param extraArgs:
         """
         threading.Thread.__init__(self)
+        self.encoder = encoder
         self.progress = 0
         # build args string
         strOverwrite = ["-n", "-y"][int(overwrite)]
-        self.args = "ffmpeg -flags:v +global_header %s -analyzeduration 1000000 -i %s %s %s %s" % (
+        self.args = "%s %s -analyzeduration 1000000 -i %s %s %s %s" % (encoder,
             strOverwrite, inpath, codecSettings, extraArgs, outpath)
         print self.args
 
@@ -37,6 +39,7 @@ class ffmpegencoder(threading.Thread):
         self.startTime = self.getTime()
 
         #start subprocess object
+        print "Encoding using", self.encoder
         proc = subprocess.Popen(self.args, shell=True, stderr=subprocess.PIPE)
 
         self.output = []        #all lines of output from FFMPEG
@@ -128,7 +131,8 @@ class ffmpegencoder(threading.Thread):
         if self.durationFlt != -1:
             return self.durationFlt
         else:
-            raise Exception("Cannot obtain duration before encode start")
+            return self.durationFlt
+            #raise Exception("Cannot obtain duration before encode start")
 
 
     def getProgress(self):

@@ -11,6 +11,9 @@ import sys
 import getopt
 import csv
 import StringIO
+from xml.dom import minidom
+import boto
+import boto.s3.connection
 from re import search
 
 from ffmpeg_encoder import *
@@ -80,7 +83,7 @@ def register_slave_server():
 
     for row in results:
         if row[0] == _localip and row[1] == _publicip and str(row[3]) == str(_uuid):
-            print "Registering Slave Server %s heartbeat at %s" % (_uuid, timestamp)
+            #print "Registering Slave Server %s heartbeat at %s" % (_uuid, timestamp)
             cursor.execute(
                 "UPDATE Servers SET LastSeen = '%s' WHERE LocalIP = '%s' AND PublicIP = '%s' AND ServerType = 'Slave' AND UUID = '%s'" % (
                     timestamp, _localip, _publicip, _uuid))
@@ -256,7 +259,7 @@ def check_storage_connected(storageuuid):
     return isconnected
 
 
-def find_keyframes(file, type):
+def find_keyframes(file, type, space):
     """
 
 
@@ -284,23 +287,27 @@ def find_keyframes(file, type):
     keyframe_diff = ["0.00000"]
     current = 0
     previous = 0
+    previousrow_time = 0
     keyframe_index = 0
 
-    print "Duration per job:", duration_per_job
+    print "Approximate duration per job:", duration_per_job
 
     for row in keyframedata:
         # find I-frames
         if row[2] == "1":
-            #print "I-frame at", row[6]
             current = row[6]
             if float(current) - float(previous) >= float(duration_per_job):
-                #keyframes[keyframe_count] = row[6]
                 keyframes.append(row[6])
                 keyframe_index += 1
                 keyframe_diff.append("-1")
-                keyframe_diff[keyframe_index - 1] = str(round(round(float(row[6]), 6) - round(float(keyframes[keyframe_index - 1]), 6), 6))
+                if space == 1:
+                    keyframe_diff[keyframe_index - 1] = str(round(round(float(previousrow_time), 6) - round(float(keyframes[keyframe_index - 1]), 6), 6))
+                if space == 0:
+                    keyframe_diff[keyframe_index - 1] = str(round(round(float(row[6]), 6) - round(float(keyframes[keyframe_index - 1]), 6), 6))
                 previous = current
                 print "Splitting job at I-frame ", row[6]
+        previousrow_time = row[6]
+
 
     print keyframes
     print keyframe_diff
@@ -315,7 +322,7 @@ def fetch_db_jobs():
     """
     cursor = _db.cursor()
     cursor.execute(
-        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = '%s' AND Assigned = '%s' AND State = '%s'" % (
+        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID, JobOptions FROM Jobs WHERE AssignedServerUUID = '%s' AND Assigned = '%s' AND State = '%s'" % (
             _uuid, 1, 0))
     results = cursor.fetchall()
     for row in results:
@@ -328,6 +335,7 @@ def fetch_db_jobs():
         joboutput = row[6]
         storageuuid = row[7]
         masteruuid = row[10]
+        joboptions = row[14]
 
         if not utility.check_dependencies(jobuuid):
             continue
@@ -372,7 +380,7 @@ def fetch_db_jobs():
                     "UPDATE Jobs SET State='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (1, jobuuid, _uuid))
                 cursor2.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (1, _uuid))
                 # run the job
-                run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput, masteruuid)
+                run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput, masteruuid, joboptions)
                 # set server as free and job as finished
                 cursor2.execute(
                     "UPDATE Jobs SET State='%s', Progress='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (2, 100, jobuuid, _uuid))
@@ -383,7 +391,7 @@ def fetch_db_jobs():
     return True
 
 
-def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput, master_uuid):
+def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput, master_uuid, joboptions):
     """
 
 
@@ -400,9 +408,21 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, job
     """
     cursor = _db.cursor()
 
+    encodercmd = globals.ENCODER
+    frame_space = 0
+    job_options = joboptions.split(",")
+    for option in job_options:
+        if option == "encoder=ffmpeg":
+            encodercmd = "ffmpeg"
+        if option == "encoder=ffmbc":
+            encodercmd = "ffmbc"
+        if option == "encoder=avconv":
+            encodercmd = "avconv"
+
     # if ffmpeg job
     if jobsubtype == "transcode":
-        encoder = ffmpegencoder(jobinput, joboutput, commandoptions, True)
+
+        encoder = ffmpegencoder(jobinput, joboutput, commandoptions, encodercmd, True)
         encoder.start()
         shouldupdate = False
 
@@ -429,7 +449,7 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, job
             print "An error has occured: %s" % (encoder.getLastOutput())
 
     elif jobsubtype == "detect frames":
-        keyframes, keyframes_diff = find_keyframes(jobinput, "v")
+        keyframes, keyframes_diff = find_keyframes(jobinput, "v", frame_space)
         keyframes_str = ','.join(map(str, keyframes))
         keyframes_diff_str = ','.join(map(str, keyframes_diff))
         cursor.execute(
@@ -466,6 +486,26 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, job
     return True
 
 
+def parse_config_file(configfile):
+    """
+
+
+    @rtype : none
+    """
+    xmldoc = minidom.parse(configfile)
+    config = xmldoc.getElementsByTagName('slaveconfig')
+    for s in config:
+        globals.DATABASE_HOST = s.attributes['dbhost'].value
+        globals.DATABASE_PORT = s.attributes['dbport'].value
+        globals.DATABASE_USER = s.attributes['dbuser'].value
+        globals.DATABASE_PASSWD = s.attributes['dbpasswd'].value
+        globals.DATABASE_NAME = s.attributes['dbname'].value
+        globals.ENCODER = s.attributes['encoder'].value
+        globals.SLAVE_MOUNT_PREFIX_PATH = s.attributes['slavemountprefix'].value
+        globals.S3ID = s.attributes['s3id'].value
+        globals.S3KEY = s.attributes['s3key'].value
+
+
 def usage():
     """
 
@@ -487,7 +527,7 @@ def parse_cmd(argv):
     """
 
     try:
-        opts, args = getopt.getopt(argv, "hd:m:", ["help", "database=", "mount="])
+        opts, args = getopt.getopt(argv, "hd:m:c:", ["help", "database=", "mount=", "config="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -504,6 +544,8 @@ def parse_cmd(argv):
             globals.SLAVE_MOUNT_PREFIX_PATH = arg
             if globals.SLAVE_MOUNT_PREFIX_PATH[-1:] == "/":
                 globals.SLAVE_MOUNT_PREFIX_PATH = globals.SLAVE_MOUNT_PREFIX_PATH[:-1]
+        if opt in ("-c", "--config"):
+            globals.CONFIG_FILE = arg
 
 
 if __name__ == "__main__":
@@ -512,6 +554,8 @@ if __name__ == "__main__":
     _localip = utility.local_ip_address()
     _publicip = utility.public_ip_address()
     parse_cmd(sys.argv[1:])
+    if globals.CONFIG_FILE != "":
+        parse_config_file(globals.CONFIG_FILE)
     _db = utility.dbconnect()
 
 while True:

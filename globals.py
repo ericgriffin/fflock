@@ -4,4 +4,8 @@ DATABASE_USER = "fflock"
 DATABASE_PASSWD = "fflock"
 DATABASE_NAME = "fflock"
 
+ENCODER = "ffmbc"
 SLAVE_MOUNT_PREFIX_PATH = ""
+S3ID = ""
+S3KEY = ""
+CONFIG_FILE = ""

@@ -11,6 +11,8 @@ import glob
 from xml.dom import minidom
 from subprocess import PIPE, Popen
 from datetime import datetime, timedelta
+import boto
+import boto.s3.connection
 
 
 def signal_handler(signal, frame):
@@ -63,7 +65,7 @@ def register_storage_server():
 
     for row in results:
         if row[0] == _localip and row[1] == _publicip and str(row[3]) == str(_uuid):
-            print "Registering Storage Server %s heartbeat at %s" % (_uuid, timestamp)
+            #print "Registering Storage Server %s heartbeat at %s" % (_uuid, timestamp)
             cursor.execute(
                 "UPDATE Servers SET LastSeen = '%s' WHERE LocalIP = '%s' AND PublicIP = '%s' AND ServerType = 'Storage' AND UUID = '%s'" % (
                     timestamp, _localip, _publicip, _uuid))
@@ -296,8 +298,7 @@ def check_xml_submits():
             joboptions = s.attributes['joboptions'].value
 
             if type == "transcode":
-                utility.submit_job("", "Master", "transcode", "ffmpeg -y -i %s %s %s", options, input, output, "", "", joboptions)
-                #utility.submit_job("", "Slave", "detect frames", "ffmpeg -y -i %s %s %s", options, input, output, "", "", joboptions)
+                utility.submit_job("", "Master", "transcode", "ffmbc -y -i %s %s %s", options, input, output, "", "", joboptions)
         if submitted == 1:
             os.rename(file, file + ".submitted")
     return True
