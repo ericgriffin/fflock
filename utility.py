@@ -380,7 +380,7 @@ def find_server_for_slave_job():
     return server_with_shortest_queue
 
 
-def submit_job(jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, dependencies, masteruuid, joboptions):
+def submit_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, input, output, dependencies, masteruuid, joboptions):
     """
 
 
@@ -407,8 +407,8 @@ def submit_job(jobuuid, jobtype, jobsubtype, command, commandoptions, input, out
         jobuuid = get_uuid()
     jobinputcursor = db.cursor()
     jobinputcursor.execute(
-        "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2, JobOptions) VALUES('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" %
-        (jobuuid, jobtype, jobsubtype, command, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid,
+        "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandPreOptions, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2, JobOptions) VALUES('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" %
+        (jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid,
          masteruuid, 1, dependencies, 0, timestamp, timestamp, "", "", joboptions))
     db.commit()
     db.close()

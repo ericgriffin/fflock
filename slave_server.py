@@ -305,12 +305,12 @@ def find_keyframes(file, type, space):
                 if space == 0:
                     keyframe_diff[keyframe_index - 1] = str(round(round(float(row[6]), 6) - round(float(keyframes[keyframe_index - 1]), 6), 6))
                 previous = current
-                print "Splitting job at I-frame ", row[6]
+                #print "Splitting job at I-frame ", row[6]
         previousrow_time = row[6]
 
 
-    print keyframes
-    print keyframe_diff
+    print "Keyframe Times:", keyframes
+    print "Time between keyframes:", keyframe_diff
     return keyframes, keyframe_diff
 
 
@@ -322,7 +322,7 @@ def fetch_db_jobs():
     """
     cursor = _db.cursor()
     cursor.execute(
-        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID, JobOptions FROM Jobs WHERE AssignedServerUUID = '%s' AND Assigned = '%s' AND State = '%s'" % (
+        "SELECT UUID, JobType, JobSubType, Command, CommandPreOptions, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID, JobOptions FROM Jobs WHERE AssignedServerUUID = '%s' AND Assigned = '%s' AND State = '%s'" % (
             _uuid, 1, 0))
     results = cursor.fetchall()
     for row in results:
@@ -330,12 +330,13 @@ def fetch_db_jobs():
         jobtype = row[1]
         jobsubtype = row[2]
         command = row[3]
-        commandoptions = row[4]
-        jobinput = row[5]
-        joboutput = row[6]
-        storageuuid = row[7]
-        masteruuid = row[10]
-        joboptions = row[14]
+        commandpreoptions = row[4]
+        commandoptions = row[5]
+        jobinput = row[6]
+        joboutput = row[7]
+        storageuuid = row[8]
+        masteruuid = row[11]
+        joboptions = row[15]
 
         if not utility.check_dependencies(jobuuid):
             continue
@@ -373,14 +374,12 @@ def fetch_db_jobs():
                 jobinput = nfsmountpath + jobinput
                 joboutput = nfsmountpath + joboutput
 
-                print jobinput, " ", joboutput
-
                 # set server as busy and job as active
                 cursor2.execute(
                     "UPDATE Jobs SET State='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (1, jobuuid, _uuid))
                 cursor2.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (1, _uuid))
                 # run the job
-                run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput, masteruuid, joboptions)
+                run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, jobinput, joboutput, masteruuid, joboptions)
                 # set server as free and job as finished
                 cursor2.execute(
                     "UPDATE Jobs SET State='%s', Progress='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (2, 100, jobuuid, _uuid))
@@ -391,7 +390,7 @@ def fetch_db_jobs():
     return True
 
 
-def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput, master_uuid, joboptions):
+def run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, jobinput, joboutput, master_uuid, joboptions):
     """
 
 
@@ -412,17 +411,16 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, job
     frame_space = 0
     job_options = joboptions.split(",")
     for option in job_options:
-        if option == "encoder=ffmpeg":
-            encodercmd = "ffmpeg"
+        if option == "encoder=ffmpeg": encodercmd = "ffmpeg"
         if option == "encoder=ffmbc":
             encodercmd = "ffmbc"
-        if option == "encoder=avconv":
-            encodercmd = "avconv"
+            frame_space = 1
+        if option == "encoder=avconv": encodercmd = "avconv"
 
     # if ffmpeg job
     if jobsubtype == "transcode":
 
-        encoder = ffmpegencoder(jobinput, joboutput, commandoptions, encodercmd, True)
+        encoder = ffmpegencoder(jobinput, joboutput, commandpreoptions, commandoptions, encodercmd, True)
         encoder.start()
         shouldupdate = False
 
@@ -475,7 +473,7 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, job
 
     # generic slave job
     else:
-        jobcommand = command % (commandoptions, jobinput, joboutput)
+        jobcommand = command % (commandpreoptions, jobinput, commandoptions, joboutput)
         print "Executing generic slave job:", jobcommand
         proc = Popen(jobcommand, shell=True, stdout=PIPE)
 

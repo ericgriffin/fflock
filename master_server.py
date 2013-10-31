@@ -189,7 +189,7 @@ def fetch_jobs():
     """
     jobcursor = _db.cursor()
     jobcursor.execute(
-        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, Priority, Dependencies, MasterUUID, Progress, ResultValue1, ResultValue2, JobOptions FROM Jobs")
+        "SELECT UUID, JobType, JobSubType, Command, CommandPreOptions, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, Priority, Dependencies, MasterUUID, Progress, ResultValue1, ResultValue2, JobOptions FROM Jobs")
     jobresults = jobcursor.fetchall()
 
     for jobrow in jobresults:
@@ -197,20 +197,21 @@ def fetch_jobs():
         jobtype = jobrow[1]
         jobsubtype = jobrow[2]
         command = jobrow[3]
-        commandoptions = jobrow[4]
-        jobinput = jobrow[5]
-        joboutput = jobrow[6]
-        jobassigned = jobrow[7]
-        jobstate = jobrow[8]
-        jobassignedserveruuid = jobrow[9]
-        storageuuid = jobrow[10]
-        jobpriority = jobrow[11]
-        jobdependencies = jobrow[12]
-        masteruuid = jobrow[13]
-        jobprogress = jobrow[14]
-        resultsvalue1 = jobrow[15]
-        resultsvalue2 = jobrow[16]
-        joboptions = jobrow[17]
+        commandpreoptions = jobrow[4]
+        commandoptions = jobrow[5]
+        jobinput = jobrow[6]
+        joboutput = jobrow[7]
+        jobassigned = jobrow[8]
+        jobstate = jobrow[9]
+        jobassignedserveruuid = jobrow[10]
+        storageuuid = jobrow[11]
+        jobpriority = jobrow[12]
+        jobdependencies = jobrow[13]
+        masteruuid = jobrow[14]
+        jobprogress = jobrow[15]
+        resultsvalue1 = jobrow[16]
+        resultsvalue2 = jobrow[17]
+        joboptions = jobrow[18]
 
         # deal with master jobs
         if jobtype == "Master":
@@ -220,7 +221,7 @@ def fetch_jobs():
                     updatecursor = _db.cursor()
                     updatecursor.execute("UPDATE Jobs SET State='%s' WHERE UUID='%s'" % (1, jobuuid))
                     detect_frames_job_uuid = utility.get_uuid()
-                    utility.submit_job(detect_frames_job_uuid, "Slave", "detect frames", " ", commandoptions, jobinput, joboutput, "", jobuuid, joboptions)
+                    utility.submit_job(detect_frames_job_uuid, "Slave", "detect frames", " ", commandpreoptions, commandoptions, jobinput, joboutput, "", jobuuid, joboptions)
 
                 if jobstate == 1:
                     child_jobs = 0
@@ -259,19 +260,29 @@ def fetch_jobs():
 
             # create audio demux job
             demuxjob_uuid = utility.get_uuid()
-            audio_demuxed_filetype = ".wav"
+            audio_demuxed_filetype = ".mkv"
             audio_demuxed_file = joboutput + "_audio" + audio_demuxed_filetype
-            utility.submit_job(demuxjob_uuid, "Slave", "audio demux", "ffmpeg -y %s -i %s -vn %s", " ", jobinput, audio_demuxed_file,
+
+            encodercmd = "ffmpeg"
+            job_options = joboptions.split(",")
+            for option in job_options:
+                if option == "encoder=ffmbc": encodercmd = "ffmbc"
+                if option == "encoder=avconv": encodercmd = "avconv"
+
+            commandstring = "%s %s -i %s %s %s" % (encodercmd, "%s", "%s", "%s", "%s")
+            preoptions = commandpreoptions + "-y "
+            options = commandoptions + "-vn -strict -2"
+            utility.submit_job(demuxjob_uuid, "Slave", "audio demux", commandstring, preoptions, options, jobinput, audio_demuxed_file,
             mux_dependencies, masteruuid, "")
             mux_dependencies += str(demuxjob_uuid)
 
-            merge_dependencies, merge_textfile = split_transcode_job(jobuuid, command, commandoptions, jobinput, joboutput, storageuuid, masteruuid, resultsvalue1, resultsvalue2, joboptions)
+            merge_dependencies, merge_textfile = split_transcode_job(jobuuid, command, commandpreoptions, commandoptions, jobinput, joboutput, storageuuid, masteruuid, resultsvalue1, resultsvalue2, joboptions)
 
             # create merge job
             mergejob_uuid = utility.get_uuid()
             outfilename, outfileextension = os.path.splitext(joboutput)
             joboutput_video = joboutput + "_video" + outfileextension
-            utility.submit_job(mergejob_uuid, "Storage", "video merge", "ffmpeg -y %s -f concat -i %s -c copy %s", " ", merge_textfile, joboutput_video,
+            utility.submit_job(mergejob_uuid, "Storage", "video merge", "ffmpeg %s -i %s %s  %s", "-y -f concat", "-c copy", merge_textfile, joboutput_video,
                        merge_dependencies, masteruuid, "")
             if mux_dependencies[-1:] != ",":
                 mux_dependencies += ","
@@ -280,18 +291,18 @@ def fetch_jobs():
             # create audio/video mux job
             muxinput = joboutput_video + "," + audio_demuxed_file
             muxjob_uuid = utility.get_uuid()
-            utility.submit_job(muxjob_uuid, "Storage", "a/v mux", "ffmpeg -y %s %s -vcodec copy %s", " ", muxinput, joboutput, mux_dependencies, masteruuid, "")
+            utility.submit_job(muxjob_uuid, "Storage", "a/v mux", "ffmpeg %s %s %s  %s", "-y", "-vcodec copy -acodec copy -strict -2", muxinput, joboutput, mux_dependencies, masteruuid, "")
 
             job_options = utility.find_job_options_for_job(masteruuid).split(",")
             for option in job_options:
                 if option == "confirm_framecount":
-                    utility.submit_job("", "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", "input", jobinput, " ", muxjob_uuid, masteruuid, "")
-                    utility.submit_job("", "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", "output", joboutput, " ", muxjob_uuid, masteruuid, "")
+                    utility.submit_job("", "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", " ", "input", jobinput, " ", muxjob_uuid, masteruuid, "")
+                    utility.submit_job("", "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", " ", "output", joboutput, " ", muxjob_uuid, masteruuid, "")
 
     return True
 
 
-def split_transcode_job(jobuuid, command, commandoptions, jobinput, joboutput, storageuuid, masteruuid, resultsvalue1, resultsvalue2, joboptions):
+def split_transcode_job(jobuuid, command, commandpreoptions, commandoptions, jobinput, joboutput, storageuuid, masteruuid, resultsvalue1, resultsvalue2, joboptions):
     """
 
 
@@ -315,17 +326,21 @@ def split_transcode_job(jobuuid, command, commandoptions, jobinput, joboutput, s
 
     # create transcode jobs for each sub-clip
     for num in range(0, num_slaves):
-        print "Splitting Job ", jobuuid, " into part ", num
+        print "Splitting Job", jobuuid, "into part", num
+        preoptions = commandpreoptions
+        options = commandoptions
 
         # if last keyframe, dont specify time period
         if keyframes_diff[keyframe_index] == "-1":
-            ffmpeg_startstop = "-an -ss %f -y" % float(keyframes[keyframe_index])
+            ffmpeg_startstop = "-ss %f -y" % float(keyframes[keyframe_index])
         else:
-            ffmpeg_startstop = "-an -ss %f -t %f" % (float(keyframes[keyframe_index]), float(keyframes_diff[keyframe_index]))
+            ffmpeg_startstop = "-ss %f -t %f" % (float(keyframes[keyframe_index]), float(keyframes_diff[keyframe_index]))
 
-        ffmpeg_startstop += commandoptions
+        #preoptions += ffmpeg_startstop
+        options += "-an "
+        options += ffmpeg_startstop
 
-        jobuuid = utility.submit_job("", "Slave", "transcode", "ffmpeg -y -i %s %s %s", ffmpeg_startstop, jobinput,
+        jobuuid = utility.submit_job("", "Slave", "transcode", "ffmpeg -y -i %s %s %s", preoptions, options, jobinput,
                              joboutput + "_part" + str(num) + outfileextension, "", masteruuid, joboptions)
         keyframe_index += 1
         merge_dependencies += str(jobuuid)
@@ -344,6 +359,12 @@ def split_transcode_job(jobuuid, command, commandoptions, jobinput, joboutput, s
 
 
 def cleanup_tasks():
+    """
+
+
+
+    @rtype : none
+    """
     remove_stale_slave_servers()
     remove_stale_storage_servers()
     remove_stale_connectivity_entries()

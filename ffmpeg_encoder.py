@@ -7,7 +7,7 @@ import globals
 
 
 class ffmpegencoder(threading.Thread):
-    def __init__(self, inpath, outpath, codecSettings, encoder, overwrite, extraArgs=" "):
+    def __init__(self, inpath, outpath, preoptions, codecSettings, encoder, overwrite, extraArgs=" "):
         """
 
 
@@ -22,9 +22,10 @@ class ffmpegencoder(threading.Thread):
         self.encoder = encoder
         self.progress = 0
         # build args string
+        codecSettings = " " + codecSettings + " "
         strOverwrite = ["-n", "-y"][int(overwrite)]
-        self.args = "%s %s -analyzeduration 1000000 -i %s %s %s %s" % (encoder,
-            strOverwrite, inpath, codecSettings, extraArgs, outpath)
+        self.args = "%s %s %s -analyzeduration 1000000 -i %s %s %s %s" % (encoder,
+            strOverwrite, preoptions, inpath, codecSettings, extraArgs, outpath)
         print self.args
 
 

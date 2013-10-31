@@ -160,7 +160,7 @@ def fetch_db_jobs():
     """
     cursor = _db.cursor()
     cursor.execute(
-        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = '%s' AND Assigned = '%s' AND State = '%s'" % (
+        "SELECT UUID, JobType, JobSubType, Command, CommandPreOptions, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = '%s' AND Assigned = '%s' AND State = '%s'" % (
             _uuid, 1, 0))
     results = cursor.fetchall()
     for row in results:
@@ -168,10 +168,11 @@ def fetch_db_jobs():
         jobtype = row[1]
         jobsubtype = row[2]
         command = row[3]
-        commandoptions = row[4]
-        jobinput = row[5]
-        joboutput = row[6]
-        storageuuid = row[7]
+        commandpreoptions = row[4]
+        commandoptions = row[5]
+        jobinput = row[6]
+        joboutput = row[7]
+        storageuuid = row[8]
 
         if not utility.check_dependencies(jobuuid):
             continue
@@ -208,7 +209,7 @@ def fetch_db_jobs():
                 "UPDATE Jobs SET State='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (1, jobuuid, _uuid))
             cursor2.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (1, _uuid))
             # run the job
-            run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput)
+            run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, jobinput, joboutput)
             # set server as free and job as finished
             cursor2.execute(
                 "UPDATE Jobs SET State='%s', Progress='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (2, 100, jobuuid, _uuid))
@@ -216,7 +217,7 @@ def fetch_db_jobs():
     return True
 
 
-def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, joboutput):
+def run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, jobinput, joboutput):
     """
 
 
@@ -231,7 +232,7 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandoptions, jobinput, job
     @param joboutput:
     @return:
     """
-    jobcommand = command % (commandoptions, jobinput, joboutput)
+    jobcommand = command % (commandpreoptions, jobinput, commandoptions, joboutput)
     print "Executing storage job:", jobcommand
     proc = Popen(jobcommand, shell=True, stdout=PIPE)
 
@@ -294,11 +295,12 @@ def check_xml_submits():
             type = s.attributes['type'].value
             input = s.attributes['input'].value
             output = s.attributes['output'].value
+            preoptions = s.attributes['preoptions'].value
             options = s.attributes['options'].value
             joboptions = s.attributes['joboptions'].value
 
             if type == "transcode":
-                utility.submit_job("", "Master", "transcode", "ffmbc -y -i %s %s %s", options, input, output, "", "", joboptions)
+                utility.submit_job("", "Master", "transcode", "ffmbc -y -i %s %s %s", preoptions, options, input, output, "", "", joboptions)
         if submitted == 1:
             os.rename(file, file + ".submitted")
     return True
