@@ -180,6 +180,31 @@ def remove_orphaned_storage_confirmation_files():
     return True
 
 
+def download_external_source(jobuuid, storageuuid, jobinput, masteruuid):
+    """
+
+
+
+    @rtype : boolean
+    """
+    download_uuid = " "
+    jobfileinput = jobinput
+    if jobinput.startswith("http://") or jobinput.startswith("https://"):
+        download_uuid = utility.get_uuid()
+        jobfileinput = jobinput.split('/')[-1]
+        utility.submit_job(download_uuid, "Storage", "http download", " ", " ", " ", jobinput, jobfileinput, " ", masteruuid, "")
+    if jobinput.startswith("ftp://"):
+        download_uuid = utility.get_uuid()
+        jobfileinput = jobinput.split('/')[-1]
+        utility.submit_job(download_uuid, "Storage", "ftp download", " ", " ", " ", jobinput, jobfileinput, " ", masteruuid, "")
+    if jobinput.startswith("s3://"):
+        download_uuid = utility.get_uuid()
+        jobfileinput = jobinput.split('/')[-1]
+        utility.submit_job(download_uuid, "Storage", "s3 download", " ", " ", " ", jobinput, jobfileinput, " ", masteruuid, "")
+
+    return download_uuid, jobfileinput
+
+
 def fetch_jobs():
     """
 
@@ -213,16 +238,20 @@ def fetch_jobs():
         resultsvalue2 = jobrow[17]
         joboptions = jobrow[18]
 
+        source_dependencies = ""
+
         # deal with master jobs
         if jobtype == "Master":
             if jobsubtype == "transcode":
 
                 if jobstate == 0:
+                    source_dependencies, jobinput = download_external_source(jobuuid, storageuuid, jobinput, masteruuid)
                     updatecursor = _db.cursor()
                     updatecursor.execute("UPDATE Jobs SET State='%s' WHERE UUID='%s'" % (1, jobuuid))
                     detect_frames_job_uuid = utility.get_uuid()
-                    utility.submit_job(detect_frames_job_uuid, "Slave", "detect frames", " ", commandpreoptions, commandoptions, jobinput, joboutput, "", jobuuid, joboptions)
+                    utility.submit_job(detect_frames_job_uuid, "Slave", "detect frames", " ", commandpreoptions, commandoptions, jobinput, joboutput, source_dependencies, jobuuid, joboptions)
 
+                # if master job is in progress, check state of child jobs and delete them if they are done
                 if jobstate == 1:
                     child_jobs = 0
                     childcursor = _db.cursor()
@@ -238,6 +267,7 @@ def fetch_jobs():
                         childcursor.execute("DELETE FROM Jobs WHERE MasterUUID='%s' AND State='%s'" % (jobuuid, 2))
                         childcursor.execute("UPDATE Jobs SET State='%s' WHERE UUID='%s'" % (2, jobuuid))
 
+                # master job's children are all finished
                 if jobstate == 2:
                     job_options = joboptions.split(",")
                     for option in job_options:
@@ -250,6 +280,14 @@ def fetch_jobs():
                                 print "Source and Transcoded file have the same number of frames:", resultsvalue1
                     deletecursor = _db.cursor()
                     deletecursor.execute("DELETE FROM Jobs WHERE UUID='%s'" % jobuuid)
+
+                    # delete externally downloaded sources
+                    if jobinput.startswith("http://") or jobinput.startswith("https://") or jobinput.startswith("ftp://"):
+                        nfsmountpath = utility.get_storage_nfs_folder_path(storageuuid)
+                        externalinputfile = nfsmountpath + jobinput.split('/')[-1]
+                        print "Deleting downloaded source file ", externalinputfile
+                        os.remove(externalinputfile)
+
 
         # if detect frames job is done, initiate split-stitch transcode process
         if jobtype == "Slave" and jobsubtype == "detect frames" and jobstate == 2:

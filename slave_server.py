@@ -295,18 +295,19 @@ def find_keyframes(file, type, space):
     for row in keyframedata:
         # find I-frames
         if row[2] == "1":
-            current = row[6]
+            current = row[4]
+            print "Current:", current, "Previous:", previous, "Duration/job:", duration_per_job
             if float(current) - float(previous) >= float(duration_per_job):
-                keyframes.append(row[6])
+                keyframes.append(row[4])
                 keyframe_index += 1
                 keyframe_diff.append("-1")
                 if space == 1:
                     keyframe_diff[keyframe_index - 1] = str(round(round(float(previousrow_time), 6) - round(float(keyframes[keyframe_index - 1]), 6), 6))
                 if space == 0:
-                    keyframe_diff[keyframe_index - 1] = str(round(round(float(row[6]), 6) - round(float(keyframes[keyframe_index - 1]), 6), 6))
+                    keyframe_diff[keyframe_index - 1] = str(round(round(float(row[4]), 6) - round(float(keyframes[keyframe_index - 1]), 6), 6))
                 previous = current
                 #print "Splitting job at I-frame ", row[6]
-        previousrow_time = row[6]
+        previousrow_time = row[4]
 
 
     print "Keyframe Times:", keyframes

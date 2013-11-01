@@ -8,6 +8,7 @@ import utility
 import signal
 import getopt
 import glob
+import threading
 from xml.dom import minidom
 from subprocess import PIPE, Popen
 from datetime import datetime, timedelta
@@ -199,7 +200,8 @@ def fetch_db_jobs():
                 for input in jobinput_list:
                     jobinput = jobinput + " -i " + nfsmountpath + input
                 joboutput = nfsmountpath + joboutput
-
+            elif jobsubtype == "http download" or jobsubtype == "ftp download" or jobsubtype == "s3 download":
+                joboutput = nfsmountpath + joboutput
             else:
                 jobinput = nfsmountpath + jobinput
                 joboutput = nfsmountpath + joboutput
@@ -212,7 +214,8 @@ def fetch_db_jobs():
             run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, jobinput, joboutput)
             # set server as free and job as finished
             cursor2.execute(
-                "UPDATE Jobs SET State='%s', Progress='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (2, 100, jobuuid, _uuid))
+                "UPDATE Jobs SET State='%s', Progress='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (
+                2, 100, jobuuid, _uuid))
             cursor2.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (0, _uuid))
     return True
 
@@ -232,14 +235,26 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandopt
     @param joboutput:
     @return:
     """
-    jobcommand = command % (commandpreoptions, jobinput, commandoptions, joboutput)
-    print "Executing storage job:", jobcommand
-    proc = Popen(jobcommand, shell=True, stdout=PIPE)
+    if jobsubtype == "http download":
+        utility.download_file_http(jobinput, joboutput)
+    elif jobsubtype == "ftp download":
+        t1 = threading.Thread(target=utility.download_file_ftp, args=[jobinput, joboutput])
+        t1.start()
+        while t1.isAlive():
+            time.sleep(3)
+            register_storage_server()
+            #utility.download_file_ftp(jobinput, joboutput)
+    elif jobsubtype == "s3 download":
+        utility.download_file_s3(jobinput, joboutput)
+    else:
+        jobcommand = command % (commandpreoptions, jobinput, commandoptions, joboutput)
+        print "Executing storage job:", jobcommand
+        proc = Popen(jobcommand, shell=True, stdout=PIPE)
 
-    while proc.poll() is None:
-        time.sleep(3)
-        register_storage_server()
-    print proc.returncode
+        while proc.poll() is None:
+            time.sleep(3)
+            register_storage_server()
+        print proc.returncode
     return True
 
 
@@ -272,7 +287,6 @@ def job_cleanup():
 
 
 def check_xml_submits():
-
     """
 
 
@@ -300,7 +314,8 @@ def check_xml_submits():
             joboptions = s.attributes['joboptions'].value
 
             if type == "transcode":
-                utility.submit_job("", "Master", "transcode", "ffmbc -y -i %s %s %s", preoptions, options, input, output, "", "", joboptions)
+                utility.submit_job("", "Master", "transcode", "ffmbc -y -i %s %s %s", preoptions, options, input,
+                                   output, "", "", joboptions)
         if submitted == 1:
             os.rename(file, file + ".submitted")
     return True

@@ -12,8 +12,10 @@ import subprocess
 from subprocess import PIPE, Popen
 from re import search
 from datetime import datetime, timedelta
+import ftplib
 from urllib2 import urlopen
 
+socket.setdefaulttimeout(30)
 
 def dbconnect():
     """
@@ -378,6 +380,64 @@ def find_server_for_slave_job():
             shortest_queue = current_queue
     db.close()
     return server_with_shortest_queue
+
+
+def download_file_http(url, filename):
+    file_name = url.split('/')[-1]
+    print "Downloading", url , "to", filename
+    header = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+       'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+       'Accept-Encoding': 'none',
+       'Accept-Language': 'en-US,en;q=0.8',
+       'Connection': 'keep-alive'}
+    req = urllib2.Request(url, headers=header)
+    u = urllib2.urlopen(req, timeout=10)
+    file = open(filename, 'wb')
+    meta = u.info()
+    file_size = int(meta.getheaders("Content-Length")[0])
+    print "Downloading: %s Bytes: %s" % (filename, file_size)
+
+    file_size_dl = 0
+    block_sz = 8192
+    while True:
+        buffer = u.read(block_sz)
+        if not buffer:
+            break
+
+        file_size_dl += len(buffer)
+        file.write(buffer)
+        status = r"%10d  [%3.2f%%]" % (file_size_dl, file_size_dl * 100. / file_size)
+        status = status + chr(8)*(len(status)+1)
+        print status,
+
+    file.close()
+
+    return True
+
+
+def download_file_ftp(url, filename):
+    file_name = url.split('/')[-1]
+    req = urllib2.Request(url)
+    u = urllib2.urlopen(req)
+    file = open(filename, 'wb')
+
+    block_sz = 8192
+    while True:
+        buffer = u.read(block_sz)
+        if not buffer:
+            break
+        file.write(buffer)
+
+    file.close()
+
+    return True
+
+
+def download_file_s3(url, filename):
+
+    return True
+
 
 
 def submit_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, input, output, dependencies, masteruuid, joboptions):
