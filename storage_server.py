@@ -202,6 +202,8 @@ def fetch_db_jobs():
                 joboutput = nfsmountpath + joboutput
             elif jobsubtype == "http download" or jobsubtype == "ftp download" or jobsubtype == "s3 download":
                 joboutput = nfsmountpath + joboutput
+            elif jobsubtype == "ftp upload" or jobsubtype == "s3 upload":
+                jobinput = nfsmountpath + jobinput
             else:
                 jobinput = nfsmountpath + jobinput
                 joboutput = nfsmountpath + joboutput
@@ -236,16 +238,40 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandopt
     @return:
     """
     if jobsubtype == "http download":
-        utility.download_file_http(jobinput, joboutput)
+        t1 = threading.Thread(target=utility.download_file_http, args=[jobinput, joboutput])
+        t1.start()
+        while t1.isAlive():
+            time.sleep(3)
+            register_storage_server()
+
     elif jobsubtype == "ftp download":
         t1 = threading.Thread(target=utility.download_file_ftp, args=[jobinput, joboutput])
         t1.start()
         while t1.isAlive():
             time.sleep(3)
             register_storage_server()
-            #utility.download_file_ftp(jobinput, joboutput)
+
     elif jobsubtype == "s3 download":
-        utility.download_file_s3(jobinput, joboutput)
+        t1 = threading.Thread(target=utility.download_file_s3, args=[jobinput, joboutput])
+        t1.start()
+        while t1.isAlive():
+            time.sleep(3)
+            register_storage_server()
+
+    elif jobsubtype == "ftp upload":
+        t1 = threading.Thread(target=utility.upload_file_ftp, args=[jobinput, joboutput])
+        t1.start()
+        while t1.isAlive():
+            time.sleep(3)
+            register_storage_server()
+
+    elif jobsubtype == "s3 upload":
+        t1 = threading.Thread(target=utility.upload_file_s3, args=[jobinput, joboutput])
+        t1.start()
+        while t1.isAlive():
+            time.sleep(3)
+            register_storage_server()
+
     else:
         jobcommand = command % (commandpreoptions, jobinput, commandoptions, joboutput)
         print "Executing storage job:", jobcommand

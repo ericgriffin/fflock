@@ -205,6 +205,40 @@ def download_external_source(jobuuid, storageuuid, jobinput, masteruuid):
     return download_uuid, jobfileinput
 
 
+def upload_external_destination(jobuuid, storageuuid, source, joboutput, dependencies, masteruuid):
+    """
+
+
+
+    @rtype : boolean
+    """
+    upload_uuid = " "
+    if joboutput.startswith("ftp://"):
+        upload_uuid = utility.get_uuid()
+        utility.submit_job(upload_uuid, "Storage", "ftp upload", " ", " ", " ", source, joboutput, dependencies, masteruuid, "")
+    if joboutput.startswith("s3://"):
+        upload_uuid = utility.get_uuid()
+        utility.submit_job(upload_uuid, "Storage", "s3 upload", " ", " ", " ", source, joboutput, dependencies, masteruuid, "")
+
+    return upload_uuid
+
+
+def remap_output(jobuuid, storageuuid, joboutput, masteruuid):
+    """
+
+
+
+    @rtype : boolean
+    """
+    download_uuid = " "
+    jobfileoutput = joboutput
+    if joboutput.startswith("ftp://"):
+        jobfileoutput = joboutput.split('/')[-1]
+    if joboutput.startswith("s3://"):
+        jobfileoutput = joboutput.split('/')[-1]
+    return jobfileoutput
+
+
 def fetch_jobs():
     """
 
@@ -246,6 +280,7 @@ def fetch_jobs():
 
                 if jobstate == 0:
                     source_dependencies, jobinput = download_external_source(jobuuid, storageuuid, jobinput, masteruuid)
+
                     updatecursor = _db.cursor()
                     updatecursor.execute("UPDATE Jobs SET State='%s' WHERE UUID='%s'" % (1, jobuuid))
                     detect_frames_job_uuid = utility.get_uuid()
@@ -282,7 +317,7 @@ def fetch_jobs():
                     deletecursor.execute("DELETE FROM Jobs WHERE UUID='%s'" % jobuuid)
 
                     # delete externally downloaded sources
-                    if jobinput.startswith("http://") or jobinput.startswith("https://") or jobinput.startswith("ftp://"):
+                    if jobinput.startswith("http://") or jobinput.startswith("https://") or jobinput.startswith("ftp://") or jobinput.startswith("s3://"):
                         nfsmountpath = utility.get_storage_nfs_folder_path(storageuuid)
                         externalinputfile = nfsmountpath + jobinput.split('/')[-1]
                         print "Deleting downloaded source file ", externalinputfile
@@ -295,6 +330,10 @@ def fetch_jobs():
             deletecursor.execute("DELETE FROM Jobs WHERE UUID = '%s'" % jobuuid)
 
             mux_dependencies = ""
+            upload_dependencies = ""
+
+            joboutput_original = joboutput
+            joboutput = remap_output(jobuuid, storageuuid, joboutput, masteruuid)
 
             # create audio demux job
             demuxjob_uuid = utility.get_uuid()
@@ -303,6 +342,7 @@ def fetch_jobs():
 
             encodercmd = "ffmpeg"
             job_options = joboptions.split(",")
+
             for option in job_options:
                 if option == "encoder=ffmbc": encodercmd = "ffmbc"
                 if option == "encoder=avconv": encodercmd = "avconv"
@@ -329,13 +369,24 @@ def fetch_jobs():
             # create audio/video mux job
             muxinput = joboutput_video + "," + audio_demuxed_file
             muxjob_uuid = utility.get_uuid()
+            upload_dependencies += str(muxjob_uuid)
             utility.submit_job(muxjob_uuid, "Storage", "a/v mux", "ffmpeg %s %s %s  %s", "-y", "-vcodec copy -acodec copy -strict -2", muxinput, joboutput, mux_dependencies, masteruuid, "")
 
             job_options = utility.find_job_options_for_job(masteruuid).split(",")
             for option in job_options:
                 if option == "confirm_framecount":
-                    utility.submit_job("", "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", " ", "input", jobinput, " ", muxjob_uuid, masteruuid, "")
-                    utility.submit_job("", "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", " ", "output", joboutput, " ", muxjob_uuid, masteruuid, "")
+                    framecount1_uuid = utility.get_uuid()
+                    utility.submit_job(framecount1_uuid, "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", " ", "input", jobinput, " ", muxjob_uuid, masteruuid, "")
+                    if len(str(upload_dependencies)) > 1 and upload_dependencies[-1:] != ",":
+                        upload_dependencies += ","
+                    upload_dependencies += str(framecount1_uuid)
+                    framecount2_uuid = utility.get_uuid()
+                    utility.submit_job(framecount2_uuid, "Slave", "count frames", "ffprobe -show_frames %s | grep -c media_type=video", " ", "output", joboutput, " ", muxjob_uuid, masteruuid, "")
+                    if upload_dependencies[-1:] != ",":
+                        upload_dependencies += ","
+                    upload_dependencies += str(framecount2_uuid)
+
+            upload_uuid = upload_external_destination(jobuuid, storageuuid, joboutput, joboutput_original, upload_dependencies, masteruuid)
 
     return True
 
@@ -361,6 +412,7 @@ def split_transcode_job(jobuuid, command, commandpreoptions, commandoptions, job
     merge_textfile = joboutput + "_mergeinput.txt"
     merge_textfile_fullpath = storage_nfs_path + joboutput + "_mergeinput.txt"
     keyframe_index = 0
+    end_of_keyframes = 0
 
     # create transcode jobs for each sub-clip
     for num in range(0, num_slaves):
@@ -368,8 +420,12 @@ def split_transcode_job(jobuuid, command, commandpreoptions, commandoptions, job
         preoptions = commandpreoptions
         options = commandoptions
 
+
+
+
         # if last keyframe, dont specify time period
         if keyframes_diff[keyframe_index] == "-1":
+            end_of_keyframes = 1
             ffmpeg_startstop = "-ss %f -y" % float(keyframes[keyframe_index])
         else:
             ffmpeg_startstop = "-ss %f -t %f" % (float(keyframes[keyframe_index]), float(keyframes_diff[keyframe_index]))
@@ -387,6 +443,10 @@ def split_transcode_job(jobuuid, command, commandpreoptions, commandoptions, job
         with open(merge_textfile_fullpath, "a") as mergefile:
             mergefile.write("file '" + storage_nfs_path + joboutput + "_part" + str(num) + outfileextension + "'\n")
             mergefile.close()
+
+        # if number of keyframes is less than number of slave servers, break
+        if end_of_keyframes == 1:
+            break
 
     if merge_dependencies[-1:] == ",":
         merge_dependencies = merge_dependencies[:-1]

@@ -12,6 +12,8 @@ import subprocess
 from subprocess import PIPE, Popen
 from re import search
 from datetime import datetime, timedelta
+import boto
+import boto.s3.connection
 import ftplib
 from urllib2 import urlopen
 
@@ -434,10 +436,39 @@ def download_file_ftp(url, filename):
     return True
 
 
-def download_file_s3(url, filename):
+def upload_file_ftp(source, destination):
+    req = urllib2.Request(destination)
+    u = urllib2.urlopen(req)
+    file = open(source, 'rb')
 
+    block_sz = 8192
+    while True:
+        buffer = file.read(block_sz)
+        if not buffer:
+            break
+        u.write(buffer)
+
+    file.close()
     return True
 
+
+def download_file_s3(url, filename):
+    file_name = url.split('/')[-1]
+    conn = boto.connect_s3(globals.S3ID, globals.S3KEY)
+    bucket = conn.get_bucket(globals.S3BUCKET)
+    key = bucket.get_key(file_name)
+    key.get_contents_to_filename(filename)
+    return True
+
+
+def upload_file_s3(source, filename):
+    file_name = source.split('/')[-1]
+    conn = boto.connect_s3(globals.S3ID, globals.S3KEY)
+    bucket = conn.get_bucket(globals.S3BUCKET)
+    key = bucket.new_key(file_name)
+    key.set_contents_from_filename(source)
+    os.remove(source)
+    return True
 
 
 def submit_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, input, output, dependencies, masteruuid, joboptions):
