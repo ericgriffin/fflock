@@ -15,9 +15,9 @@ from datetime import datetime, timedelta
 import boto
 import boto.s3.connection
 import ftplib
-from urllib2 import urlopen
 
-socket.setdefaulttimeout(30)
+socket.setdefaulttimeout(12)
+
 
 def dbconnect():
     """
@@ -338,8 +338,7 @@ def find_server_for_storage_job():
         storageserveruuid = storagerow[0]
         jobcursor = db.cursor()
         jobcursor.execute(
-            "SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = '%s'" % str(
-                storageserveruuid))
+            "SELECT JobType, Assigned, State, AssignedServerUUID, Priority, Dependencies, Progress FROM Jobs WHERE AssignedServerUUID = '%s'" % str(storageserveruuid))
         jobresults = jobcursor.fetchall()
         for jobrow in jobresults:
             current_queue += 1
@@ -386,15 +385,19 @@ def find_server_for_slave_job():
 
 def download_file_http(url, filename):
     file_name = url.split('/')[-1]
-    print "Downloading", url , "to", filename
-    header = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-       'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-       'Accept-Encoding': 'none',
-       'Accept-Language': 'en-US,en;q=0.8',
-       'Connection': 'keep-alive'}
-    req = urllib2.Request(url, headers=header)
-    u = urllib2.urlopen(req, timeout=10)
+    print "Downloading", url, "to", filename
+    header = {
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+    'Accept-Encoding': 'none',
+    'Accept-Language': 'en-US,en;q=0.8',
+    'Connection': 'keep-alive'}
+    try:
+        req = urllib2.Request(url, headers=header)
+        u = urllib2.urlopen(req)
+    except urllib2.URLError:
+        return True
     file = open(filename, 'wb')
     meta = u.info()
     file_size = int(meta.getheaders("Content-Length")[0])
@@ -410,7 +413,7 @@ def download_file_http(url, filename):
         file_size_dl += len(buffer)
         file.write(buffer)
         status = r"%10d  [%3.2f%%]" % (file_size_dl, file_size_dl * 100. / file_size)
-        status = status + chr(8)*(len(status)+1)
+        status = status + chr(8) * (len(status) + 1)
         print status,
 
     file.close()
@@ -461,17 +464,22 @@ def download_file_s3(url, filename):
     return True
 
 
-def upload_file_s3(source, filename):
-    file_name = source.split('/')[-1]
+def upload_file_s3(source, destination):
+    destination_path = destination.split('//')[-1]
+    destination_path = "/" + destination_path
+    file_name = source.split('//')[-1]
     conn = boto.connect_s3(globals.S3ID, globals.S3KEY)
     bucket = conn.get_bucket(globals.S3BUCKET)
-    key = bucket.new_key(file_name)
-    key.set_contents_from_filename(source)
+    key = bucket.new_key(destination_path)
+
+    print "Uploading to AWS S3:", destination, " source", source
+    key.set_contents_from_filename(file_name)
     os.remove(source)
     return True
 
 
-def submit_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, input, output, dependencies, masteruuid, joboptions):
+def submit_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, input, output, dependencies,
+               masteruuid, joboptions):
     """
 
 
@@ -499,7 +507,8 @@ def submit_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, command
     jobinputcursor = db.cursor()
     jobinputcursor.execute(
         "INSERT INTO Jobs(UUID, JobType, JobSubType, Command, CommandPreOptions, CommandOptions, JobInput, JobOutput, Assigned, State, AssignedServerUUID, StorageUUID, MasterUUID, Priority, Dependencies, Progress, AssignedTime, CreatedTime, ResultValue1, ResultValue2, JobOptions) VALUES('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" %
-        (jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, input, output, 1, 0, assignedserveruuid, storageuuid,
+        (jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, input, output, 1, 0,
+         assignedserveruuid, storageuuid,
          masteruuid, 1, dependencies, 0, timestamp, timestamp, "", "", joboptions))
     db.commit()
     db.close()
