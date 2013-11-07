@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<fflock>
+    <job type="transcode" input="input/test.mpg" output="output/test_OUT.mov" preoptions=" " options=" -vcodec prores " joboptions="confirm_framecount,encoder=avconv"/>
+</fflock>
+

@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<fflock>
+    <masterconfig dbhost="cl1" dbport="3306" dbuser="fflock" dbpasswd="fflock" dbname="fflock" encoder="ffmpeg"/>
+	
+	<slaveconfig dbhost="cl1" dbport="3306" dbuser="fflock" dbpasswd="fflock" dbname="fflock" encoder="ffmpeg" slavemountprefix="/mnt/fflock"/>
+	
+	<storageconfig dbhost="cl1" dbport="3306" dbuser="fflock" dbpasswd="fflock" dbname="fflock" encoder="ffmpeg" nfspath="/mnt/nfs/" s3id="" s3key="" s3bucket=""/>
+
+	<adminconfig dbhost="cl1" dbport="3306" dbuser="fflock" dbpasswd="fflock" dbname="fflock"/>
+</fflock>

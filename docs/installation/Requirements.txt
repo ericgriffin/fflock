@@ -1,0 +1,12 @@
+Python 2.7
+MySQL Database Server
+ffmpeg
+ffprobe
+python-boto
+python-cherrypy
+python-openssl / pyOpenSSL
+
+Storage Server requires an NFS share with R/W access to all slave servers.
+
+self-signed SSL certs:
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout server.key -out server.crt
