@@ -9,9 +9,19 @@
 ## be redirected to HTTPS, uncomment the line below:
 # request.requires_https()
 
+import sys
+import os
+sys.path.append(os.path.abspath('./../../'))
+from modules import fflock_globals
+
 if not request.env.web2py_runtime_gae:
     ## if NOT running on Google App Engine use SQLite or other DB
-    db = DAL('sqlite://storage.sqlite',pool_size=1,check_reserved=['all'])
+    #db = DAL('sqlite://storage.sqlite',pool_size=1,check_reserved=['all'])
+
+    sqlconn_string = "mysql://" + fflock_globals.DATABASE_USER + ":" + fflock_globals.DATABASE_PASSWD + "@"\
+                     + fflock_globals.DATABASE_HOST + ":" + str(fflock_globals.DATABASE_PORT) + "/"\
+                     + fflock_globals.DATABASE_NAME
+    db = DAL(sqlconn_string)
 else:
     ## connect to Google BigTable (optional 'google:datastore://namespace')
     db = DAL('google:datastore')

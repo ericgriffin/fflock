@@ -12,31 +12,33 @@ CREATE TABLE Jobs
     ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     UUID VARCHAR(256) NOT NULL,
     JobType VARCHAR(256),
-	  JobSubType VARCHAR(256) NOT NULL,
+    JobSubType VARCHAR(256) NOT NULL,
     Command VARCHAR(256) NOT NULL,
-	  CommandOptions VARCHAR(256) NOT NULL,
+    CommandOptions VARCHAR(256) NOT NULL,
     JobInput VARCHAR(256),
     JobOutput VARCHAR(256),
     Assigned INT NOT NULL,
     State INT,
-	  Progress INT NOT NULL,
-	  Priority INT NOT NULL,
-	  ResultValue1 VARCHAR(256),
+    Progress INT NOT NULL,
+    Priority INT NOT NULL,
+    ResultValue1 VARCHAR(256),
     ResultValue2 VARCHAR(256),
-	  Dependencies VARCHAR(4096) NOT NULL,
+    Dependencies VARCHAR(4096) NOT NULL,
     AssignedServerUUID VARCHAR(256),
     StorageUUID VARCHAR(256) NOT NULL,
-    MasterUUID INT NOT NULL,
+    MasterUUID VARCHAR(256),
     AssignedTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CreatedTime TIMESTAMP DEFAULT '0000-00-00 00:00:00' NOT NULL,
-    FinishedTime TIMESTAMP DEFAULT '0000-00-00 00:00:00' NOT NULL
+    FinishedTime TIMESTAMP DEFAULT '0000-00-00 00:00:00' NOT NULL,
+    JobOptions VARCHAR(256) NOT NULL,
+    CommandPreOptions VARCHAR(256) NOT NULL
 );
 CREATE TABLE Servers
 (
     ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     UUID VARCHAR(256),
     ServerType VARCHAR(256),
-	  State INT,
+    State INT,
     LocalIP VARCHAR(256),
     PublicIP VARCHAR(256),
     LastSeen TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
@@ -46,7 +48,87 @@ CREATE TABLE Storage
     ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
     UUID VARCHAR(256) NOT NULL,
     ServerUUID VARCHAR(256),
-	  StorageType VARCHAR(256),
+    StorageType VARCHAR(256),
     LocalPathNFS VARCHAR(256),
     PublicPathNFS VARCHAR(256)
 );
+CREATE TABLE auth_cas
+(
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    user_id INT,
+    created_on DATETIME,
+    service VARCHAR(512),
+    ticket VARCHAR(512),
+    renew CHAR(1)
+);
+CREATE TABLE auth_event
+(
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    time_stamp DATETIME,
+    client_ip VARCHAR(512),
+    user_id INT,
+    origin VARCHAR(512),
+    description LONGTEXT
+);
+CREATE TABLE auth_group
+(
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    role VARCHAR(512),
+    description LONGTEXT
+);
+CREATE TABLE auth_membership
+(
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    user_id INT,
+    group_id INT
+);
+CREATE TABLE auth_permission
+(
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    group_id INT,
+    name VARCHAR(512),
+    table_name VARCHAR(512),
+    record_id INT
+);
+CREATE TABLE auth_user
+(
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    first_name VARCHAR(128),
+    last_name VARCHAR(128),
+    email VARCHAR(512),
+    password VARCHAR(512),
+    registration_key VARCHAR(512),
+    reset_password_key VARCHAR(512),
+    registration_id VARCHAR(512)
+);
+CREATE TABLE plugin_attachment_attachment
+(
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    webid INT,
+    parentname VARCHAR(512),
+    parentid INT,
+    sortorder INT,
+    file1 VARCHAR(512),
+    filename VARCHAR(512)
+);
+CREATE TABLE plugin_attachment_customer
+(
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+    title VARCHAR(512),
+    name VARCHAR(512),
+    address1 VARCHAR(512),
+    address2 VARCHAR(512),
+    address3 VARCHAR(512),
+    town VARCHAR(512),
+    county VARCHAR(512)
+);
+ALTER TABLE auth_cas ADD FOREIGN KEY ( user_id ) REFERENCES auth_user ( id ) ON DELETE CASCADE;
+CREATE INDEX user_id__idx ON auth_cas ( user_id );
+ALTER TABLE auth_event ADD FOREIGN KEY ( user_id ) REFERENCES auth_user ( id ) ON DELETE CASCADE;
+CREATE INDEX user_id__idx ON auth_event ( user_id );
+ALTER TABLE auth_membership ADD FOREIGN KEY ( user_id ) REFERENCES auth_user ( id ) ON DELETE CASCADE;
+ALTER TABLE auth_membership ADD FOREIGN KEY ( group_id ) REFERENCES auth_group ( id ) ON DELETE CASCADE;
+CREATE INDEX group_id__idx ON auth_membership ( group_id );
+CREATE INDEX user_id__idx ON auth_membership ( user_id );
+ALTER TABLE auth_permission ADD FOREIGN KEY ( group_id ) REFERENCES auth_group ( id ) ON DELETE CASCADE;
+CREATE INDEX group_id__idx ON auth_permission ( group_id );
