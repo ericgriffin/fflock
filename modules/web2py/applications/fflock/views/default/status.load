@@ -1,0 +1,6 @@
+    <div class="row">
+        <div class="pull-left"><H4>Servers</H4>{{=servers}}</div><br>
+    </div>
+    <div class="row">
+        <div class="pull-left"><H4>Jobs</H4>{{=jobs}}</div>
+    </div>

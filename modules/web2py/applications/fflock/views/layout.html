@@ -91,14 +91,14 @@
 
   <div class="container">
     <!-- Masthead ================================================== -->
-    <header class="mastheader row" id="header">
+    <header class="mastheader row" id="small-header">
       {{if response.title:}}
-        <div class="span12">
+        <div class="pull-left">
             <div class="page-header">
-                <div>
+                <h4>
                     {{=response.title}}
                     <small>{{=response.subtitle or ''}}</small>
-                </div>
+                </h4>
             </div>
         </div>
 	{{pass}}
@@ -130,20 +130,7 @@
         {{pass}}
     </section><!--/main-->
 
-    <!-- Footer ================================================== -->
-    <div class="row">
-        <footer class="footer span12" id="footer">
-            <div class="footer-content">
-                {{block footer}} <!-- this is default footer -->
-                <!-- <div class="copyright pull-left">{{=T('Copyright')}} &#169; {{=request.now.year}}</div>
-                <div id="poweredBy" class="pull-right">
-                    {{=T('Powered by')}}
-                    <a href="http://">FFlock</a>
-                </div> -->
-                {{end}}
-            </div>
-        </footer>
-    </div>
+
 
   </div> <!-- /container -->
 
@@ -163,6 +150,5 @@
     'Google Analytics':{trackingId:'{{=response.google_analytics_id}}'} 
   });</script>
   {{pass}}
-  <!-- <script src="{{=URL('static','js/share.js',vars=dict(static=URL('static','images')))}}"></script> -->
 </body>
 </html>

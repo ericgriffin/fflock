@@ -315,3 +315,36 @@ li.w2p_grid_breadcrumb_elem {
 .ie-lte8 div.flash{ filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#222222', endColorstr='#000000', GradientType=0 ); }
 .ie-lte8 div.flash:hover {filter:alpha(opacity=25);}
 .ie9 #w2p_query_panel {padding-bottom:2px}
+
+
+
+
+#box-table-a {
+font-family: "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
+font-size: 12px;
+width: 480px;
+text-align: left;
+border-collapse: collapse;
+margin: 20px;
+}
+
+#box-table-a tr:hover td {
+background: #dddddd;
+color: #000;
+}
+
+#box-table-a th {
+font-size: 18px;
+font-weight: normal;
+background: #ffffff;
+border-top: 4px solid #000000;
+border-bottom: 1px solid #fff;
+color: #000;
+padding: 6px;
+}
+
+#box-table-a td {
+border-bottom: 1px solid #fff;
+border-top: 1px solid transparent;
+padding: 2px;
+}

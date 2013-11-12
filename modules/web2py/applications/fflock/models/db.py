@@ -89,6 +89,63 @@ use_janrain(auth, filename='private/janrain.key')
 ## >>> for row in rows: print row.id, row.myfield
 #########################################################################
 
+db.define_table(
+    'Servers',
+    Field('UUID', 'string'),
+    Field('ServerType', 'string'),
+    Field('State', 'integer'),
+    Field('LocalIP', 'string'),
+    Field('PublicIP', 'string'),
+    Field('LastSeen', 'datetime'),
+    migrate=False
+)
+
+db.define_table(
+    'Storage',
+    Field('UUID', 'string'),
+    Field('ServerUUID', 'string'),
+    Field('StorageType', 'string'),
+    Field('LocalPathNFS', 'string'),
+    Field('PublicPathNFS', 'string'),
+    migrate=False
+)
+
+db.define_table(
+    'Connectivity',
+    Field('SlaveServerUUID', 'string'),
+    Field('StorageUUID', 'string'),
+    Field('Latency', 'integer'),
+    Field('IPType', 'string'),
+    Field('Connected', 'integer'),
+    migrate=False
+)
+
+db.define_table(
+    'Jobs',
+    Field('JobType', 'string'),
+    Field('JobSubType', 'string'),
+    Field('Command', 'string'),
+    Field('CommandPreOptions', 'string'),
+    Field('CommandOptions', 'string'),
+    Field('JobInput', 'string'),
+    Field('JobOutput', 'string'),
+    Field('Assigned', 'integer'),
+    Field('State', 'integer'),
+    Field('Progress', 'integer'),
+    Field('Priority', 'integer'),
+    Field('ResultValue1', 'string'),
+    Field('ResultValue2', 'string'),
+    Field('Dependencies', 'string'),
+    Field('UUID', 'string'),
+    Field('AssignedServerUUID', 'string'),
+    Field('StorageUUID', 'string'),
+    Field('MasterUUID', 'string'),
+    Field('AssignedTime', 'datetime'),
+    Field('CreatedTime', 'datetime'),
+    Field('FinishedTime', 'datetime'),
+    migrate=False
+)
+
 ## after defining tables, uncomment below to enable auditing
 # auth.enable_record_versioning(db)
 
