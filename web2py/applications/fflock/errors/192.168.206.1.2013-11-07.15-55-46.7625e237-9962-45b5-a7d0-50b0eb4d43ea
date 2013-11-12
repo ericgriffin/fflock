@@ -1,0 +1,21 @@
+(dp1
+S'output'
+p2
+S"<type 'exceptions.ValueError'> invalid literal for long() with base 10: 'NFS'"
+p3
+sS'layer'
+p4
+S'/mnt/hgfs/fflock/modules/web2py/applications/fflock/controllers/default.py'
+p5
+sS'code'
+p6
+S'# -*- coding: utf-8 -*-\n### required - do no delete\n\nimport sys\nimport os\nsys.path.append(os.path.abspath(\'./../../\'))\nfrom modules import fflock_globals\nfrom modules import fflock_utility\n\n\ndef user(): return dict(form=auth())\ndef download(): return response.download(request,db)\ndef call(): return service()\n### end requires\n\ndef index():\n    return dict(message="Index")\n\ndef submit():\n    servers = []\n    try:\n        _db = fflock_utility.dbconnect()\n    except:\n        return dict(message="Cannot connect to database.")\n\n    serverstatecursor = _db.cursor()\n    serverstatecursor.execute("SELECT UUID, ServerType, State FROM Servers")\n    serverstateresults = serverstatecursor.fetchall()\n    for server in serverstateresults:\n        servers.append(server[1])\n    output = fflock_globals.DATABASE_HOST\n\n    form = FORM(TABLE(TR("Job Type:", SELECT(\'Transcode\', \'Custom\', _name="sure", requires=IS_IN_SET([\'Transcode\', \'Custom\']))),\n                    TR("Input:", INPUT(_type="text", _name="input", requires=IS_NOT_EMPTY())),\n                    TR("Output", INPUT(_type="text", _name="output", requires=IS_NOT_EMPTY())),\n                    TR("Compare Frame Count", INPUT(_type="checkbox", _name="framecount")),\n                    TR("Encoder", SELECT(\'ffmpeg\', \'ffmbc\', \'avconv\', _name="encoder", requires=IS_IN_SET([\'ffmpeg\', \'ffmbc\', \'avconv\']))),\n\n                    TR("", INPUT(_type="submit", _value="SUBMIT"))))\n\n    if form.accepts(request, session):\n        response.flash = "form accepted"\n    elif form.errors:\n        response.flash = "form is invalid"\n    else:\n        response.flash = "please fill the form"\n\n    return dict(form=form, vars=form.vars, message=servers)\n\n\ndef status():\n    servers = SQLTABLE(db().select(db.Servers.ALL), headers=\'fieldname:capitalize\')\n    storage = SQLTABLE(db().select(db.Storage.ALL), headers=\'fieldname:capitalize\')\n    connectivity = SQLTABLE(db().select(db.Connectivity.ALL), headers=\'fieldname:capitalize\')\n    jobs = SQLTABLE(db().select(db.Jobs.ALL), headers=\'fieldname:capitalize\')\n    return dict(servers=servers, storage=storage, connectivity=connectivity, jobs=jobs)\n\n\ndef manage():\n    return dict(message="manage")\n\n\ndef help():\n    return dict(message="help")\n\n\ndef error():\n    return dict()\n\nresponse._vars=response._caller(status)\n'
+p7
+sS'snapshot'
+p8
+(dp9
+sS'traceback'
+p10
+S'Traceback (most recent call last):\n  File "/mnt/hgfs/fflock/modules/web2py/gluon/restricted.py", line 217, in restricted\n    exec ccode in environment\n  File "/mnt/hgfs/fflock/modules/web2py/applications/fflock/controllers/default.py", line 70, in <module>\n  File "/mnt/hgfs/fflock/modules/web2py/gluon/globals.py", line 372, in <lambda>\n    self._caller = lambda f: f()\n  File "/mnt/hgfs/fflock/modules/web2py/applications/fflock/controllers/default.py", line 53, in status\n    storage = SQLTABLE(db().select(db.Storage.ALL), headers=\'fieldname:capitalize\')\n  File "/mnt/hgfs/fflock/modules/web2py/gluon/dal.py", line 10111, in select\n    return adapter.select(self.query,fields,attributes)\n  File "/mnt/hgfs/fflock/modules/web2py/gluon/dal.py", line 1751, in select\n    return self._select_aux(sql,fields,attributes)\n  File "/mnt/hgfs/fflock/modules/web2py/gluon/dal.py", line 1732, in _select_aux\n    return processor(rows,fields,self._colnames,cacheable=cacheable)\n  File "/mnt/hgfs/fflock/modules/web2py/gluon/dal.py", line 2106, in parse\n    value = self.parse_value(value,ft,blob_decode)\n  File "/mnt/hgfs/fflock/modules/web2py/gluon/dal.py", line 1955, in parse_value\n    return self.parsemap[key](value,field_type)\n  File "/mnt/hgfs/fflock/modules/web2py/gluon/dal.py", line 2039, in parse_integer\n    return long(value)\nValueError: invalid literal for long() with base 10: \'NFS\'\n'
+p11
+s.

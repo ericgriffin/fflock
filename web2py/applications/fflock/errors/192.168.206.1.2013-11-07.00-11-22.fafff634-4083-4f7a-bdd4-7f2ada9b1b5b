@@ -1,0 +1,21 @@
+(dp1
+S'output'
+p2
+S"<type 'exceptions.NameError'> global name '_db' is not defined"
+p3
+sS'layer'
+p4
+S'/mnt/hgfs/fflock/modules/web2py/applications/fflock/controllers/default.py'
+p5
+sS'code'
+p6
+S'# -*- coding: utf-8 -*-\n### required - do no delete\n\nimport fflock_globals\nimport fflock_utility\n\ndef user(): return dict(form=auth())\ndef download(): return response.download(request,db)\ndef call(): return service()\n### end requires\ndef index():\n    serverstatecursor = _db.cursor()\n    #serverstatecursor.execute("SELECT UUID, ServerType, State FROM Servers")\n    #serverstateresults = serverstatecursor.fetchall()\n    #for server in serverstateresults:\n    #    servers += server[1]\n\n    return dict(message="Testing")\n\ndef error():\n    return dict()\n\nresponse._vars=response._caller(index)\n'
+p7
+sS'snapshot'
+p8
+(dp9
+sS'traceback'
+p10
+S'Traceback (most recent call last):\n  File "/mnt/hgfs/fflock/modules/web2py/gluon/restricted.py", line 217, in restricted\n    exec ccode in environment\n  File "/mnt/hgfs/fflock/modules/web2py/applications/fflock/controllers/default.py", line 23, in <module>\n  File "/mnt/hgfs/fflock/modules/web2py/gluon/globals.py", line 372, in <lambda>\n    self._caller = lambda f: f()\n  File "/mnt/hgfs/fflock/modules/web2py/applications/fflock/controllers/default.py", line 12, in index\n    serverstatecursor = _db.cursor()\nNameError: global name \'_db\' is not defined\n'
+p11
+s.
