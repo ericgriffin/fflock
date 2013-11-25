@@ -6,6 +6,7 @@ import socket
 import urllib2
 import uuid
 import re
+import glob
 import MySQLdb
 import subprocess
 from subprocess import PIPE, Popen
@@ -142,6 +143,17 @@ def getTotalFrames(file, fps):
         timecode.group(4)) / 100) * float(fps)
 
 
+def ensure_dir(path, storageuuid):
+    if not path.startswith("http://") and not path.startswith("https://") and not path.startswith(
+            "ftp://") and not path.startswith("s3://"):
+
+        d = os.path.dirname(path)
+        if not os.path.exists(d):
+            print "CREATING OUTPUT FOLDER"
+            d_fullpath = get_storage_nfs_folder_path(storageuuid[0]) + d
+            os.makedirs(d_fullpath)
+
+
 def get_storage_nfs_folder_path(storageuuid):
     db = dbconnect()
     cursor2 = db.cursor()
@@ -203,6 +215,48 @@ def remove_dependency_jobs(jobuuid):
         # remove intermediate job output files
 
     db.close()
+    return True
+
+
+def job_cleanup(jobuuid, storageuuid, masteruuid, jobinput, joboutput):
+    """
+
+
+    @rtype : Boolean
+    @return:
+    """
+
+
+    print "jobinput:", jobinput
+    print "joboutput:", joboutput
+    db = dbconnect()
+    jobcursor = db.cursor()
+
+    # delete externally downloaded sources
+    if jobinput.startswith("http://") or jobinput.startswith("https://") or jobinput.startswith(
+            "ftp://") or jobinput.startswith("s3://"):
+        nfsmountpath = get_storage_nfs_folder_path(storageuuid)
+        externalinputfile = nfsmountpath + jobinput.split('/')[-1]
+        print "Deleting downloaded source file ", externalinputfile
+        os.remove(externalinputfile)
+
+    # delete intermediate files
+    if joboutput.startswith("http://") or joboutput.startswith("https://") or joboutput.startswith(
+            "ftp://") or joboutput.startswith("s3://"):
+        joboutput = joboutput.split('/')[-1]
+
+    todelete = get_storage_nfs_folder_path(storageuuid) + joboutput + "_*"
+    print "INTERMEDIATE FILES: ", todelete
+    for file in glob.glob(todelete):
+        print "delete ", file
+        os.remove(file)
+
+    # delete the master job
+    deletecursor = db.cursor()
+    deletecursor.execute("DELETE FROM Jobs WHERE UUID='%s'" % masteruuid)
+
+    db.close()
+
     return True
 
 

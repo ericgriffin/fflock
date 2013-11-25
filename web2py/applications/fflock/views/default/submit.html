@@ -1,4 +1,23 @@
+{{left_sidebar_enabled,right_sidebar_enabled=False,('message' in globals())}}
+{{response.files.append(URL(r=request,c='static',f='html5-file-upload/assets/js/jquery.filedrop.js'))}}
+{{response.files.append(URL(r=request,c='static',f='html5-file-upload/assets/js/script.js'))}}
+{{response.files.append(URL(r=request,c='static',f='html5-file-upload/assets/css/styles.css'))}}
 {{extend 'layout.html'}}
+
+{{block right_sidebar}}
+
+{{end}}
+
+<div id="dropbox" style='background: #5DAAC9; width: 350px; height:150px; border: 2px; border-color: #000000; text-align: center; display: table;'>
+    <span style="display: table-cell; vertical-align: middle; font-size: 20px">Drag and drop job XMLs here.</span>
+</div>
+
+<script>
+    //Global variable for script.js
+    REQUEST_UPLOAD='{{=URL(r=request,f="my_upload")}}'
+</script>
+
+<div id="response"></div>
 
 <h4>Job Submission</h4>
 <div>{{=form}}</div>

@@ -1,0 +1,19 @@
+{{left_sidebar_enabled,right_sidebar_enabled=False,('message' in globals())}}
+{{response.files.append(URL(r=request,c='static',f='html5-file-upload/assets/js/jquery.filedrop.js'))}}
+{{response.files.append(URL(r=request,c='static',f='html5-file-upload/assets/js/script.js'))}}
+{{extend 'layout.html'}}
+
+{{block right_sidebar}}
+
+{{end}}
+
+<div id="response"></div>
+
+<div id="dropbox">
+    <span class="message">Drop images here to upload. <br /><i>(they will only be visible to you)</i></span>
+</div>
+
+<script>
+    //Global variable for script.js
+    REQUEST_UPLOAD='{{=URL(r=request,f="my_upload")}}'
+</script>

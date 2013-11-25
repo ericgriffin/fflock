@@ -42,7 +42,7 @@ audio {width:200px}
 /* Sticky footer begin */
 
 .main {
-  padding:20px 0 50px 0;
+  padding:5px 0 50px 0;
 }
 
 .footer,.push {
@@ -317,15 +317,13 @@ li.w2p_grid_breadcrumb_elem {
 .ie9 #w2p_query_panel {padding-bottom:2px}
 
 
-
-
 #box-table-a {
 font-family: "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
 font-size: 12px;
 width: 480px;
 text-align: left;
 border-collapse: collapse;
-margin: 20px;
+margin: 10px;
 }
 
 #box-table-a tr:hover td {
@@ -344,7 +342,9 @@ padding: 6px;
 }
 
 #box-table-a td {
+font-size: 16px;
 border-bottom: 1px solid #fff;
 border-top: 1px solid transparent;
 padding: 2px;
 }
+

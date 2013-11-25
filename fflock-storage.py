@@ -7,6 +7,8 @@ import glob
 import signal
 import getopt
 import threading
+from multiprocessing import Process
+from modules import fflock_threadpool
 from datetime import datetime
 from xml.dom import minidom
 from subprocess import PIPE, Popen
@@ -182,7 +184,7 @@ def fetch_db_jobs():
         serverstatecursor.execute("SELECT UUID, State FROM Servers WHERE UUID = '%s'" % _uuid)
         serverstateresults = serverstatecursor.fetchone()
         # if this server is not busy then fetch next job
-        if serverstateresults[1] == 0:
+        if serverstateresults[1] < 10:
             cursor2 = _db.cursor()
             cursor2.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID = '%s'" % storageuuid)
             result2 = cursor2.fetchone()
@@ -202,21 +204,17 @@ def fetch_db_jobs():
                 joboutput = nfsmountpath + joboutput
             elif jobsubtype == "ftp upload" or jobsubtype == "s3 upload":
                 jobinput = nfsmountpath + jobinput
+            elif jobsubtype == "cleanup":
+                jobinput = jobinput
+                joboutput = joboutput
             else:
                 jobinput = nfsmountpath + jobinput
                 joboutput = nfsmountpath + joboutput
 
-            # set server as busy and job as active
-            cursor2.execute(
-                "UPDATE Jobs SET State='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (1, jobuuid, _uuid))
-            cursor2.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (1, _uuid))
             # run the job
-            run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, jobinput, joboutput)
-            # set server as free and job as finished
-            cursor2.execute(
-                "UPDATE Jobs SET State='%s', Progress='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (
-                    2, 100, jobuuid, _uuid))
-            cursor2.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (0, _uuid))
+            threadpool.add_task(run_job, jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, jobinput, joboutput)
+            #run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandoptions, jobinput, joboutput)
+
     return True
 
 
@@ -235,78 +233,78 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandopt
     @param joboutput:
     @return:
     """
-    if jobsubtype == "http download":
-        t1 = threading.Thread(target=fflock_utility.download_file_http, args=[jobinput, joboutput])
-        t1.start()
-        while t1.isAlive():
-            time.sleep(3)
-            register_storage_server()
+
+    cursor = _db.cursor()
+    # set server as busy and job as active
+    cursor.execute("UPDATE Jobs SET State='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (1, jobuuid, _uuid))
+    cursor.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (1, _uuid))
+
+    if jobsubtype == "cleanup":
+        fflock_utility.job_cleanup(jobuuid, commandpreoptions, commandoptions, jobinput, joboutput)
+        # delete the cleanup job
+        cursor.execute("DELETE FROM Jobs WHERE UUID='%s'" % jobuuid)
+
+    elif jobsubtype == "http download":
+        fflock_utility.download_file_http(jobinput, joboutput)
+        #t1 = Process(target=fflock_utility.download_file_http, args=[jobinput, joboutput])
+        #t1 = threading.Thread(target=fflock_utility.download_file_http, args=[jobinput, joboutput])
+        #t1.start()
+        ##while t1.isAlive():
+        ##    time.sleep(3)
+        ##    register_storage_server()
 
     elif jobsubtype == "ftp download":
-        t2 = threading.Thread(target=fflock_utility.download_file_ftp, args=[jobinput, joboutput])
-        t2.start()
-        while t2.isAlive():
-            time.sleep(3)
-            register_storage_server()
+        fflock_utility.download_file_ftp(jobinput, joboutput)
+        #t2 = Process(target=fflock_utility.download_file_ftp, args=[jobinput, joboutput])
+        #t2.start()
+        #while t2.isAlive():
+        #    time.sleep(3)
+        #    register_storage_server()
 
     elif jobsubtype == "s3 download":
-        t3 = threading.Thread(target=fflock_utility.download_file_s3, args=[jobinput, joboutput])
-        t3.start()
-        while t3.isAlive():
-            time.sleep(3)
-            register_storage_server()
+        fflock_utility.download_file_s3(jobinput, joboutput)
+        #t3 = Process(target=fflock_utility.download_file_s3, args=[jobinput, joboutput])
+        #t3.start()
+        #while t3.isAlive():
+        #    time.sleep(3)
+        #    register_storage_server()
 
     elif jobsubtype == "ftp upload":
-        t4 = threading.Thread(target=fflock_utility.upload_file_ftp, args=[jobinput, joboutput])
-        t4.start()
-        while t4.isAlive():
-            time.sleep(3)
-            register_storage_server()
+        fflock_utility.upload_file_ftp(jobinput, joboutput)
+        #t4 = Process(target=fflock_utility.upload_file_ftp, args=[jobinput, joboutput])
+        #t4.start()
+        #while t4.isAlive():
+        #    time.sleep(3)
+        #    register_storage_server()
 
     elif jobsubtype == "s3 upload":
-        t5 = threading.Thread(target=fflock_utility.upload_file_s3, args=[jobinput, joboutput])
-        t5.start()
-        while t5.isAlive():
-            time.sleep(3)
-            register_storage_server()
+        fflock_utility.upload_file_s3(jobinput, joboutput)
+        #t5 = Process(target=fflock_utility.upload_file_s3, args=[jobinput, joboutput])
+        #t5.start()
+        #while t5.isAlive():
+        #    time.sleep(3)
+        #    register_storage_server()
 
     else:
         jobcommand = command % (commandpreoptions, jobinput, commandoptions, joboutput)
         print "Executing storage job:", jobcommand
+        print commandpreoptions
+        print jobinput
+        print commandoptions
+        print joboutput
         proc = Popen(jobcommand, shell=True, stdout=PIPE)
 
         while proc.poll() is None:
             time.sleep(3)
-            register_storage_server()
+            #register_storage_server()
         print proc.returncode
-    return True
 
+    # set server as free and job as finished
+    if jobsubtype != "cleanup":
+        cursor.execute("UPDATE Jobs SET State='%s', Progress='%s' WHERE UUID='%s' AND AssignedServerUUID='%s'" % (2, 100, jobuuid, _uuid))
 
-def job_cleanup():
-    """
+    cursor.execute("UPDATE Servers SET State='%s' WHERE UUID='%s'" % (0, _uuid))
 
-
-    @rtype : Boolean
-    @return:
-    """
-    jobcursor = _db.cursor()
-    deletecursor = _db.cursor()
-    jobcursor.execute(
-        "SELECT UUID, JobType, JobSubType, Command, CommandOptions, JobInput, JobOutput, StorageUUID, Priority, Dependencies, MasterUUID, Assigned, State, AssignedServerUUID FROM Jobs WHERE AssignedServerUUID = '%s' AND Assigned = '%s' AND State = '%s'" % (
-            _uuid, 1, 2))
-    jobresults = jobcursor.fetchall()
-    for jobrow in jobresults:
-        jobuuid = jobrow[0]
-        jobtype = jobrow[1]
-        jobsubtype = jobrow[2]
-        joboutput = jobrow[6]
-        storageuuid = jobrow[7]
-        if jobtype == "Storage" and jobsubtype == "a/v mux":
-            todelete = fflock_utility.get_storage_nfs_folder_path(storageuuid) + joboutput + "_*"
-            for file in glob.glob(todelete):
-                print "delete ", file
-                os.remove(file)
-            deletecursor.execute("DELETE FROM Jobs WHERE UUID='%s'" % jobuuid)
     return True
 
 
@@ -321,7 +319,7 @@ def check_xml_submits():
 
     if submitfiles[-1:] != "/":
         submitfiles += "/"
-    submitfiles += "*_fflock.xml"
+    submitfiles += "*.xml"
     for file in glob.glob(submitfiles):
         submitted = 0
         print "Submitting jobs from: ", file
@@ -346,10 +344,15 @@ def check_xml_submits():
             commandstring = "%s -y -i %s %s %s" % (encodercmd, "%s", "%s", "%s")
 
             if type == "transcode":
+                storageuuid = fflock_utility.find_server_storage_UUIDs(_uuid)
+                fflock_utility.ensure_dir(output, storageuuid)
                 fflock_utility.submit_job("", "Master", "transcode", commandstring, preoptions, options, input,
                                    output, "", "", joboptions)
+
+        # delete the submitted xml file
         if submitted == 1:
-            os.rename(file, file + ".submitted")
+            #os.rename(file, file + ".submitted")
+            os.remove(file)
     return True
 
 
@@ -409,6 +412,7 @@ if __name__ == "__main__":
     if fflock_globals.CONFIG_FILE != "":
         fflock_utility.parse_config_file(fflock_globals.CONFIG_FILE, "storage")
     _db = fflock_utility.dbconnect()
+    threadpool = fflock_threadpool.ThreadPool(20)
 
     while True:
         if register_storage_server():
@@ -416,5 +420,5 @@ if __name__ == "__main__":
         check_slave_connectivity()
         check_xml_submits()
         fetch_db_jobs()
-        job_cleanup()
+        #job_cleanup()
         time.sleep(2)

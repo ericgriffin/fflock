@@ -11,8 +11,10 @@
 
 import sys
 import os
+import datetime
 sys.path.append(os.path.abspath('./../'))
 from modules import fflock_globals
+from modules import fflock_utility
 
 if not request.env.web2py_runtime_gae:
     ## if NOT running on Google App Engine use SQLite or other DB
@@ -145,6 +147,52 @@ db.define_table(
     Field('FinishedTime', 'datetime'),
     migrate=False
 )
+
+
+# determine upload location from fflock database
+now = datetime.datetime.now()
+serveruuid = ""
+nfsmountpath = ""
+tempdb = fflock_utility.dbconnect()
+cursor = tempdb.cursor()
+storagecursor = tempdb.cursor()
+storagecursor.execute("SELECT ServerType, UUID FROM Servers WHERE ServerType = '%s'" % "Storage")
+storageresults = storagecursor.fetchall()
+for storagerow in storageresults:
+    serveruuid = storagerow[1]
+
+storageuuids = []
+__db = fflock_utility.dbconnect()
+cursor.execute("SELECT UUID, ServerUUID FROM Storage WHERE ServerUUID = '%s'" % serveruuid)
+results = cursor.fetchall()
+for row in results:
+    storageuuids.append(row[0])
+__db.close()
+
+for storageuuid in storageuuids:
+    __db = fflock_utility.dbconnect()
+    cursor2 = __db.cursor()
+    cursor2.execute("SELECT LocalPathNFS, PublicPathNFS FROM Storage WHERE UUID = '%s'" % storageuuid)
+    result2 = cursor2.fetchone()
+    nfsmountpath = result2[0].split(':', 1)[-1]
+    __db.close()
+
+upload_location = nfsmountpath
+
+
+
+db.define_table(
+    'files',
+    Field('title', "string", unique=False),
+    Field('file', 'upload', uploadfolder=upload_location, autodelete=True),
+    Field('datecreated', 'datetime', default=now, readable=False),
+    migrate=False
+)
+
+
+
+db.files.title.requires = IS_NOT_EMPTY()
+
 
 ## after defining tables, uncomment below to enable auditing
 # auth.enable_record_versioning(db)

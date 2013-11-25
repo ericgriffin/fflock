@@ -368,8 +368,11 @@ def fetch_db_jobs():
                 nfsmountpath = fflock_globals.SLAVE_MOUNT_PREFIX_PATH + nfsmountpath
 
                 # prepend nfs mount path to input and output file
-                jobinput = nfsmountpath + jobinput
-                joboutput = nfsmountpath + joboutput
+                if jobsubtype == "write mergefile":
+                    joboutput = nfsmountpath + joboutput
+                else:
+                    jobinput = nfsmountpath + jobinput
+                    joboutput = nfsmountpath + joboutput
 
                 # set server as busy and job as active
                 cursor2.execute(
@@ -405,6 +408,7 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandopt
     @param joboutput:
     @return:
     """
+
     cursor = _db.cursor()
 
     encodercmd = fflock_globals.ENCODER
@@ -470,6 +474,15 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandopt
             cursor.execute("UPDATE Jobs SET ResultValue1='%s' WHERE UUID='%s'" % (str(num_frames), str(master_uuid)))
         if commandoptions == "output":
             cursor.execute("UPDATE Jobs SET ResultValue2='%s' WHERE UUID='%s'" % (str(num_frames), str(master_uuid)))
+
+    elif jobsubtype == "write mergefile":
+        print "----WRITING MERGEFILE"
+        print joboutput
+        print jobinput
+        print "----------------"
+        with open(joboutput, "a") as mergefile:
+            mergefile.write(jobinput)
+            mergefile.close()
 
     # generic slave job
     else:

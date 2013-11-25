@@ -282,7 +282,7 @@ def fetch_jobs():
             if jobsubtype == "transcode":
 
                 if jobstate == 0:
-                    source_dependencies, jobinput = download_external_source(jobuuid, storageuuid, jobinput, masteruuid)
+                    source_dependencies, jobinput = download_external_source("", storageuuid, jobinput, jobuuid)
 
                     updatecursor = _db.cursor()
                     updatecursor.execute("UPDATE Jobs SET State='%s' WHERE UUID='%s'" % (1, jobuuid))
@@ -325,18 +325,9 @@ def fetch_jobs():
                                     resultsvalue2), "less frames than the source."
                             if resultsvalue1 == resultsvalue2:
                                 print "------ Source and Transcoded file have the same number of frames:", resultsvalue1
-                    deletecursor = _db.cursor()
-                    deletecursor.execute("DELETE FROM Jobs WHERE UUID='%s'" % jobuuid)
 
-                    # delete externally downloaded sources
-                    if jobinput.startswith("http://") or jobinput.startswith("https://") or jobinput.startswith(
-                            "ftp://") or jobinput.startswith("s3://"):
-                        nfsmountpath = fflock_utility.get_storage_nfs_folder_path(storageuuid)
-                        externalinputfile = nfsmountpath + jobinput.split('/')[-1]
-                        #print "Deleting downloaded source file ", externalinputfile
-                        os.remove(externalinputfile)
-
-
+                    cleanup_uuid = fflock_utility.get_uuid()
+                    fflock_utility.submit_job(cleanup_uuid, "Storage", "cleanup", " ", storageuuid, jobuuid, jobinput, joboutput, " ", jobuuid, "")
 
 
         # if detect frames job is done, initiate split-stitch transcode process
@@ -426,7 +417,7 @@ def split_transcode_job(jobuuid, command, commandpreoptions, commandoptions, job
 
     @rtype : boolean
     """
-    merge_dependencies = ""
+
     keyframes = resultsvalue1.split(",")
     keyframes_diff = resultsvalue2.split(",")
 
@@ -438,9 +429,13 @@ def split_transcode_job(jobuuid, command, commandpreoptions, commandoptions, job
 
     outfilename, outfileextension = os.path.splitext(joboutput)
     merge_textfile = joboutput + "_mergeinput.txt"
-    merge_textfile_fullpath = storage_nfs_path + joboutput + "_mergeinput.txt"
+    mergefiletext = ""
     keyframe_index = 0
     end_of_keyframes = 0
+
+    # create a uuid for the merge file creation job
+    mergefile_uuid = fflock_utility.get_uuid()
+    merge_dependencies = str(mergefile_uuid) + ","
 
     # create transcode jobs for each sub-clip
     for num in range(0, num_slaves):
@@ -473,17 +468,19 @@ def split_transcode_job(jobuuid, command, commandpreoptions, commandoptions, job
         keyframe_index += 1
         merge_dependencies += str(slavejobuuid)
         merge_dependencies += ","
-        # write the merge textfile for ffmpeg concat
-        with open(merge_textfile_fullpath, "a") as mergefile:
-            mergefile.write("file '" + storage_nfs_path + joboutput + "_part" + str(num) + outfileextension + "'\n")
-            mergefile.close()
 
+        # write the merge textfile for ffmpeg concat
+        #mergefiletext += 'file ' + '"' + storage_nfs_path + joboutput + '_part' + str(num) + outfileextension + '"' + "\n"
+        mergefiletext += "file " + storage_nfs_path + joboutput + "_part" + str(num) + outfileextension + "\n"
         # if number of keyframes is less than number of slave servers, break
         if end_of_keyframes == 1:
             break
 
+    # trim off the last comma on the dependencies list
     if merge_dependencies[-1:] == ",":
         merge_dependencies = merge_dependencies[:-1]
+
+    fflock_utility.submit_job(mergefile_uuid, "Slave", "write mergefile", " ", " ", " ", mergefiletext, merge_textfile, "", masteruuid, "")
 
     return merge_dependencies, merge_textfile
 
