@@ -146,11 +146,9 @@ def getTotalFrames(file, fps):
 def ensure_dir(path, storageuuid):
     if not path.startswith("http://") and not path.startswith("https://") and not path.startswith(
             "ftp://") and not path.startswith("s3://"):
-
         d = os.path.dirname(path)
-        if not os.path.exists(d):
-            print "CREATING OUTPUT FOLDER"
-            d_fullpath = get_storage_nfs_folder_path(storageuuid[0]) + d
+        d_fullpath = get_storage_nfs_folder_path(storageuuid[0]) + d
+        if not os.path.exists(d_fullpath):
             os.makedirs(d_fullpath)
 
 

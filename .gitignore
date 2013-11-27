@@ -1,6 +1,13 @@
+*.pyc
+*.lnk
 /.idea/
-utility.pyc
-globals.pyc
-/*.pyc
-/test data/
+/config/config.xml
 /Docs/test scripts/
+/web2py/parameters_*.py
+/web2py/httpserver.*
+/web2py/applications/admin/databases/
+/web2py/applications/admin/errors/
+/web2py/applications/admin/sessions/
+/web2py/applications/fflock/databases/
+/web2py/applications/fflock/errors/
+/web2py/applications/fflock/sessions/

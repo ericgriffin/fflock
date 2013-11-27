@@ -178,6 +178,30 @@ def remove_orphaned_storage_confirmation_files():
     return True
 
 
+def reassign_orphaned_jobs():
+    reassigncursor = _db.cursor()
+    servercursor = _db.cursor()
+    servercursor.execute("SELECT UUID FROM Servers")
+    serverresults = servercursor.fetchall()
+    jobcursor = _db.cursor()
+    jobcursor.execute("SELECT UUID, JobType, AssignedServerUUID FROM Jobs")
+    jobresults = jobcursor.fetchall()
+    for jobrow in jobresults:
+        assigned = 0
+        if jobrow[1] == "Slave":
+            for serverrow in serverresults:
+                if jobrow[2] == serverrow[0]:
+                    assigned = 1
+                else:
+                    continue
+            if assigned == 0:
+                assigned_server = fflock_utility.find_server_for_slave_job()
+                print "Reassigning orphaned job", jobrow[0], "to slave server", assigned_server
+                reassigncursor.execute("UPDATE Jobs SET AssignedServerUUID='%s', State=0 WHERE UUID='%s'" % (assigned_server, jobrow[0]))
+
+    return True
+
+
 def download_external_source(jobuuid, storageuuid, jobinput, masteruuid):
     """
 
@@ -496,6 +520,12 @@ def cleanup_tasks():
     remove_stale_storage_servers()
     remove_stale_connectivity_entries()
     remove_orphaned_storage_confirmation_files()
+    reassign_orphaned_jobs()
+    return True
+
+
+def load_balance():
+
     return True
 
 
@@ -553,4 +583,5 @@ if __name__ == "__main__":
         register_master_server(_uuid)
         fetch_jobs()
         cleanup_tasks()
+        load_balance()
         time.sleep(2)
