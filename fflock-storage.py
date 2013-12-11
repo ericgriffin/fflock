@@ -6,8 +6,6 @@ import time
 import glob
 import signal
 import getopt
-import threading
-from multiprocessing import Process
 from modules import fflock_threadpool
 from datetime import datetime
 from xml.dom import minidom
@@ -243,48 +241,16 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandopt
         fflock_utility.job_cleanup(jobuuid, commandpreoptions, commandoptions, jobinput, joboutput)
         # delete the cleanup job
         cursor.execute("DELETE FROM Jobs WHERE UUID='%s'" % jobuuid)
-
     elif jobsubtype == "http download":
         fflock_utility.download_file_http(jobinput, joboutput)
-        #t1 = Process(target=fflock_utility.download_file_http, args=[jobinput, joboutput])
-        #t1 = threading.Thread(target=fflock_utility.download_file_http, args=[jobinput, joboutput])
-        #t1.start()
-        ##while t1.isAlive():
-        ##    time.sleep(3)
-        ##    register_storage_server()
-
     elif jobsubtype == "ftp download":
         fflock_utility.download_file_ftp(jobinput, joboutput)
-        #t2 = Process(target=fflock_utility.download_file_ftp, args=[jobinput, joboutput])
-        #t2.start()
-        #while t2.isAlive():
-        #    time.sleep(3)
-        #    register_storage_server()
-
     elif jobsubtype == "s3 download":
         fflock_utility.download_file_s3(jobinput, joboutput)
-        #t3 = Process(target=fflock_utility.download_file_s3, args=[jobinput, joboutput])
-        #t3.start()
-        #while t3.isAlive():
-        #    time.sleep(3)
-        #    register_storage_server()
-
     elif jobsubtype == "ftp upload":
         fflock_utility.upload_file_ftp(jobinput, joboutput)
-        #t4 = Process(target=fflock_utility.upload_file_ftp, args=[jobinput, joboutput])
-        #t4.start()
-        #while t4.isAlive():
-        #    time.sleep(3)
-        #    register_storage_server()
-
     elif jobsubtype == "s3 upload":
         fflock_utility.upload_file_s3(jobinput, joboutput)
-        #t5 = Process(target=fflock_utility.upload_file_s3, args=[jobinput, joboutput])
-        #t5.start()
-        #while t5.isAlive():
-        #    time.sleep(3)
-        #    register_storage_server()
-
     else:
         jobcommand = command % (commandpreoptions, jobinput, commandoptions, joboutput)
         print "Executing storage job:", jobcommand
@@ -295,8 +261,7 @@ def run_job(jobuuid, jobtype, jobsubtype, command, commandpreoptions, commandopt
         proc = Popen(jobcommand, shell=True, stdout=PIPE)
 
         while proc.poll() is None:
-            time.sleep(3)
-            #register_storage_server()
+            time.sleep(1)
         print proc.returncode
 
     # set server as free and job as finished
@@ -351,7 +316,6 @@ def check_xml_submits():
 
         # delete the submitted xml file
         if submitted == 1:
-            #os.rename(file, file + ".submitted")
             os.remove(file)
     return True
 
@@ -396,7 +360,7 @@ def parse_cmd(argv):
             storage = arg
             if storage[-1:] != "/":
                 storage += "/"
-            #if opt in ("-s", "--s3"):
+        #if opt in ("-s", "--s3"):
         #    fflock_globals.S3BUCKET = arg
         if opt in ("-c", "--config"):
             fflock_globals.CONFIG_FILE = arg
@@ -420,5 +384,4 @@ if __name__ == "__main__":
         check_slave_connectivity()
         check_xml_submits()
         fetch_db_jobs()
-        #job_cleanup()
         time.sleep(2)

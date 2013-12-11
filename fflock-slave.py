@@ -303,7 +303,6 @@ def find_keyframes(file, type, space):
                     keyframe_diff[keyframe_index - 1] = str(
                         round(round(float(row[4]), 6) - round(float(keyframes[keyframe_index - 1]), 6), 6))
                 previous = current
-                #print "Splitting job at I-frame ", row[6]
         previousrow_time = row[4]
 
     print "Keyframe Times:", keyframes

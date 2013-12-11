@@ -197,7 +197,8 @@ def reassign_orphaned_jobs():
             if assigned == 0:
                 assigned_server = fflock_utility.find_server_for_slave_job()
                 print "Reassigning orphaned job", jobrow[0], "to slave server", assigned_server
-                reassigncursor.execute("UPDATE Jobs SET AssignedServerUUID='%s', State=0 WHERE UUID='%s'" % (assigned_server, jobrow[0]))
+                reassigncursor.execute(
+                    "UPDATE Jobs SET AssignedServerUUID='%s', State=0 WHERE UUID='%s'" % (assigned_server, jobrow[0]))
 
     return True
 
@@ -215,22 +216,22 @@ def download_external_source(jobuuid, storageuuid, jobinput, masteruuid):
         download_uuid = fflock_utility.get_uuid()
         jobfileinput = jobinput.split('/')[-1]
         fflock_utility.submit_job(download_uuid, "Storage", "http download", " ", " ", " ", jobinput, jobfileinput, " ",
-                           masteruuid, "")
+                                  masteruuid, "")
     if jobinput.startswith("ftp://"):
         download_uuid = fflock_utility.get_uuid()
         jobfileinput = jobinput.split('/')[-1]
         fflock_utility.submit_job(download_uuid, "Storage", "ftp download", " ", " ", " ", jobinput, jobfileinput, " ",
-                           masteruuid, "")
+                                  masteruuid, "")
     if jobinput.startswith("s3://"):
         download_uuid = fflock_utility.get_uuid()
         jobfileinput = jobinput.split('/')[-1]
         fflock_utility.submit_job(download_uuid, "Storage", "s3 download", " ", " ", " ", jobinput, jobfileinput, " ",
-                           masteruuid, "")
+                                  masteruuid, "")
 
     return download_uuid, jobfileinput
 
 
-def upload_external_destination(jobuuid, storageuuid, source, joboutput, dependencies, masteruuid):
+def upload_external_destination(source, joboutput, dependencies, masteruuid):
     """
 
 
@@ -241,23 +242,22 @@ def upload_external_destination(jobuuid, storageuuid, source, joboutput, depende
     if joboutput.startswith("ftp://"):
         upload_uuid = fflock_utility.get_uuid()
         fflock_utility.submit_job(upload_uuid, "Storage", "ftp upload", " ", " ", " ", source, joboutput, dependencies,
-                           masteruuid, "")
+                                  masteruuid, "")
     if joboutput.startswith("s3://"):
         upload_uuid = fflock_utility.get_uuid()
         fflock_utility.submit_job(upload_uuid, "Storage", "s3 upload", " ", " ", " ", source, joboutput, dependencies,
-                           masteruuid, "")
+                                  masteruuid, "")
 
     return upload_uuid
 
 
-def remap_output(jobuuid, storageuuid, joboutput, masteruuid):
+def remap_output(joboutput):
     """
 
 
 
     @rtype : boolean
     """
-    download_uuid = " "
     jobfileoutput = joboutput
     if joboutput.startswith("ftp://"):
         jobfileoutput = joboutput.split('/')[-1]
@@ -312,7 +312,8 @@ def fetch_jobs():
                     updatecursor.execute("UPDATE Jobs SET State='%s' WHERE UUID='%s'" % (1, jobuuid))
                     detect_frames_job_uuid = fflock_utility.get_uuid()
                     fflock_utility.submit_job(detect_frames_job_uuid, "Slave", "detect frames", " ", commandpreoptions,
-                                       commandoptions, jobinput, joboutput, source_dependencies, jobuuid, joboptions)
+                                              commandoptions, jobinput, joboutput, source_dependencies, jobuuid,
+                                              joboptions)
 
                 # if master job is in progress, check state of child jobs and delete them if they are done
                 if jobstate == 1:
@@ -351,7 +352,8 @@ def fetch_jobs():
                                 print "------ Source and Transcoded file have the same number of frames:", resultsvalue1
 
                     cleanup_uuid = fflock_utility.get_uuid()
-                    fflock_utility.submit_job(cleanup_uuid, "Storage", "cleanup", " ", storageuuid, jobuuid, jobinput, joboutput, " ", jobuuid, "")
+                    fflock_utility.submit_job(cleanup_uuid, "Storage", "cleanup", " ", storageuuid, jobuuid, jobinput,
+                                              joboutput, " ", jobuuid, "")
 
 
         # if detect frames job is done, initiate split-stitch transcode process
@@ -363,7 +365,7 @@ def fetch_jobs():
             upload_dependencies = ""
 
             joboutput_original = joboutput
-            joboutput = remap_output(jobuuid, storageuuid, joboutput, masteruuid)
+            joboutput = remap_output(joboutput)
 
             # create audio demux job
             demuxjob_uuid = fflock_utility.get_uuid()
@@ -380,9 +382,10 @@ def fetch_jobs():
             commandstring = "%s %s -i %s %s %s" % (encodercmd, "%s", "%s", "%s", "%s")
             preoptions = commandpreoptions + "-y "
             options = commandoptions + "-vn -strict -2"
-            fflock_utility.submit_job(demuxjob_uuid, "Slave", "audio demux", commandstring, preoptions, options, jobinput,
-                               audio_demuxed_file,
-                               mux_dependencies, masteruuid, "")
+            fflock_utility.submit_job(demuxjob_uuid, "Slave", "audio demux", commandstring, preoptions, options,
+                                      jobinput,
+                                      audio_demuxed_file,
+                                      mux_dependencies, masteruuid, "")
             mux_dependencies += str(demuxjob_uuid)
 
             merge_dependencies, merge_textfile = split_transcode_job(jobuuid, command, commandpreoptions,
@@ -395,8 +398,8 @@ def fetch_jobs():
             outfilename, outfileextension = os.path.splitext(joboutput)
             joboutput_video = joboutput + "_video" + outfileextension
             fflock_utility.submit_job(mergejob_uuid, "Storage", "video merge", "ffmpeg %s -i %s %s  %s", "-y -f concat",
-                               "-c copy", merge_textfile, joboutput_video,
-                               merge_dependencies, masteruuid, "")
+                                      "-c copy", merge_textfile, joboutput_video,
+                                      merge_dependencies, masteruuid, "")
             if mux_dependencies[-1:] != ",":
                 mux_dependencies += ","
             mux_dependencies += str(mergejob_uuid)
@@ -406,28 +409,30 @@ def fetch_jobs():
             muxjob_uuid = fflock_utility.get_uuid()
             upload_dependencies += str(muxjob_uuid)
             fflock_utility.submit_job(muxjob_uuid, "Storage", "a/v mux", "ffmpeg %s %s %s  %s", "-y",
-                               "-vcodec copy -acodec copy -strict -2", muxinput, joboutput, mux_dependencies,
-                               masteruuid, "")
+                                      "-vcodec copy -acodec copy -strict -2", muxinput, joboutput, mux_dependencies,
+                                      masteruuid, "")
 
             job_options = fflock_utility.find_job_options_for_job(masteruuid).split(",")
             for option in job_options:
                 if option == "confirm_framecount":
                     framecount1_uuid = fflock_utility.get_uuid()
                     fflock_utility.submit_job(framecount1_uuid, "Slave", "count frames",
-                                       "ffprobe -show_frames %s | grep -c media_type=video", " ", "input", jobinput,
-                                       " ", muxjob_uuid, masteruuid, "")
+                                              "ffprobe -show_frames %s | grep -c media_type=video", " ", "input",
+                                              jobinput,
+                                              " ", muxjob_uuid, masteruuid, "")
                     if len(str(upload_dependencies)) > 1 and upload_dependencies[-1:] != ",":
                         upload_dependencies += ","
                     upload_dependencies += str(framecount1_uuid)
                     framecount2_uuid = fflock_utility.get_uuid()
                     fflock_utility.submit_job(framecount2_uuid, "Slave", "count frames",
-                                       "ffprobe -show_frames %s | grep -c media_type=video", " ", "output", joboutput,
-                                       " ", muxjob_uuid, masteruuid, "")
+                                              "ffprobe -show_frames %s | grep -c media_type=video", " ", "output",
+                                              joboutput,
+                                              " ", muxjob_uuid, masteruuid, "")
                     if upload_dependencies[-1:] != ",":
                         upload_dependencies += ","
                     upload_dependencies += str(framecount2_uuid)
 
-            upload_uuid = upload_external_destination(jobuuid, storageuuid, joboutput, joboutput_original,
+            upload_uuid = upload_external_destination(joboutput, joboutput_original,
                                                       upload_dependencies, masteruuid)
 
     return True
@@ -473,7 +478,7 @@ def split_transcode_job(jobuuid, command, commandpreoptions, commandoptions, job
             ffmpeg_startstop = "-ss %f -y" % float(keyframes[keyframe_index])
         else:
             ffmpeg_startstop = "-ss %f -t %f" % (
-            float(keyframes[keyframe_index]), float(keyframes_diff[keyframe_index]))
+                float(keyframes[keyframe_index]), float(keyframes_diff[keyframe_index]))
 
         #preoptions += ffmpeg_startstop
         options += "-an "
@@ -488,7 +493,8 @@ def split_transcode_job(jobuuid, command, commandpreoptions, commandoptions, job
         commandstring = "%s -y -i %s %s %s" % (encodercmd, "%s", "%s", "%s")
 
         slavejobuuid = fflock_utility.submit_job("", "Slave", "transcode", commandstring, preoptions, options, jobinput,
-                                          joboutput + "_part" + str(num) + outfileextension, "", masteruuid, joboptions)
+                                                 joboutput + "_part" + str(num) + outfileextension, "", masteruuid,
+                                                 joboptions)
         keyframe_index += 1
         merge_dependencies += str(slavejobuuid)
         merge_dependencies += ","
@@ -504,7 +510,8 @@ def split_transcode_job(jobuuid, command, commandpreoptions, commandoptions, job
     if merge_dependencies[-1:] == ",":
         merge_dependencies = merge_dependencies[:-1]
 
-    fflock_utility.submit_job(mergefile_uuid, "Slave", "write mergefile", " ", " ", " ", mergefiletext, merge_textfile, "", masteruuid, "")
+    fflock_utility.submit_job(mergefile_uuid, "Slave", "write mergefile", " ", " ", " ", mergefiletext, merge_textfile,
+                              "", masteruuid, "")
 
     return merge_dependencies, merge_textfile
 
@@ -525,7 +532,6 @@ def cleanup_tasks():
 
 
 def load_balance():
-
     return True
 
 
