@@ -1,6 +1,5 @@
 *.pyc
 *.lnk
-/.idea/
 /config/config.xml
 /Docs/test scripts/
 /web2py/parameters_*.py
