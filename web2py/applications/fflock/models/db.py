@@ -186,6 +186,7 @@ db.define_table(
     Field('title', "string", unique=False),
     Field('file', 'upload', uploadfolder=upload_location, autodelete=True),
     Field('datecreated', 'datetime', default=now, readable=False),
+    migrate=False
 )
 
 

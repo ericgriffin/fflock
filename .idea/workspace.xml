@@ -1,0 +1,925 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AnalysisUIOptions">
+    <option name="GROUP_BY_SEVERITY" value="true" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="ac055e46-4d74-4334-8553-14e6dedf5e50" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.gitignore" afterPath="$PROJECT_DIR$/.gitignore" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/web2py/applications/fflock/models/db.py" afterPath="$PROJECT_DIR$/web2py/applications/fflock/models/db.py" />
+    </list>
+    <ignored path="fflock.iws" />
+    <ignored path=".idea/workspace.xml" />
+    <option name="TRACKING_ENABLED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ChangesViewManager" flattened_view="true" show_ignored="false" />
+  <component name="CoverageDataManager">
+    <SUITE FILE_PATH="coverage/fflock$test_submit_job.coverage" NAME="test_submit_job Coverage Results" MODIFIED="1381721023691" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/fflock$Storage___CL1.coverage" NAME="Storage - CL1 Coverage Results" MODIFIED="1386780857078" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="/mnt/hgfs/fflock/" />
+    <SUITE FILE_PATH="coverage/fflock$Slave___CL4.coverage" NAME="Slave - CL4 Coverage Results" MODIFIED="1386780928297" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="/mnt/hgfs/fflock/" />
+    <SUITE FILE_PATH="coverage/fflock$Slave___Local.coverage" NAME="Slave - Local Coverage Results" MODIFIED="1381328379617" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/fflock$cluster_status.coverage" NAME="cluster_status Coverage Results" MODIFIED="1382318183847" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/fflock$Slave___CL2.coverage" NAME="Slave - CL2 Coverage Results" MODIFIED="1386780910092" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="/mnt/hgfs/fflock/" />
+    <SUITE FILE_PATH="coverage/fflock$Slave___CL3.coverage" NAME="Slave - CL3 Coverage Results" MODIFIED="1386780918943" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="/mnt/hgfs/fflock/" />
+    <SUITE FILE_PATH="coverage/fflock$Master___CL1.coverage" NAME="Master - CL1 Coverage Results" MODIFIED="1386780853843" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="/mnt/hgfs/fflock/" />
+    <SUITE FILE_PATH="coverage/fflock$admin.coverage" NAME="admin Coverage Results" MODIFIED="1386781026958" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="/mnt/hgfs/fflock/" />
+    <SUITE FILE_PATH="coverage/fflock$Master___Local.coverage" NAME="Master - Local Coverage Results" MODIFIED="1382322328530" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/fflock$Slave___CL1.coverage" NAME="Slave - CL1 Coverage Results" MODIFIED="1386780901014" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="/mnt/hgfs/fflock/" />
+  </component>
+  <component name="CreatePatchCommitExecutor">
+    <option name="PATCH_PATH" value="" />
+  </component>
+  <component name="DaemonCodeAnalyzer">
+    <disable_hints />
+  </component>
+  <component name="DatabaseView">
+    <flatten value="false" />
+    <groupTables value="false" />
+    <sortChildren value="false" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
+  <component name="FavoritesManager">
+    <favorites_list name="fflock" />
+  </component>
+  <component name="FileEditorManager">
+    <leaf>
+      <file leaf-file-name="fflock-master.py" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/fflock-master.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="103" column="0" selection-start="3031" selection-end="3031" vertical-scroll-proportion="0.4978038" vertical-offset="1275" max-vertical-offset="10030">
+              <folding>
+                <marker date="1386780557824" expanded="true" signature="469:532" placeholder="DELETE FROM ..." />
+                <marker date="1386780557824" expanded="true" signature="749:842" placeholder="SELECT Local..Servers..." />
+                <marker date="1386780557824" expanded="true" signature="939:1050" placeholder="INSERT INTO ..." />
+                <marker date="1386780557824" expanded="true" signature="1509:1626" placeholder="UPDATE Serve..." />
+                <marker date="1386780557824" expanded="true" signature="2016:2063" placeholder="DELETE FROM ..." />
+                <marker date="1386780557824" expanded="true" signature="2504:2577" placeholder="SELECT LastS..Servers..." />
+                <marker date="1386780557824" expanded="true" signature="2781:2843" placeholder="DELETE FROM ..." />
+                <marker date="1386780557824" expanded="true" signature="2890:2943" placeholder="DELETE FROM ..." />
+                <marker date="1386780557824" expanded="true" signature="3163:3199" placeholder="SELECT Stora..Connectivity..." />
+                <marker date="1386780557824" expanded="true" signature="3374:3398" placeholder="SELECT UUID ..Storage..." />
+                <marker date="1386780557824" expanded="true" signature="3734:3783" placeholder="DELETE FROM ..." />
+                <marker date="1386780557824" expanded="true" signature="3990:4065" placeholder="SELECT LastS..Servers..." />
+                <marker date="1386780557824" expanded="true" signature="4307:4367" placeholder="SELECT UUID,..Storage..." />
+                <marker date="1386780557824" expanded="true" signature="4492:4541" placeholder="DELETE FROM ..." />
+                <marker date="1386780557824" expanded="true" signature="4589:4632" placeholder="DELETE FROM ..." />
+                <marker date="1386780557824" expanded="true" signature="4679:4743" placeholder="DELETE FROM ..." />
+                <marker date="1386780557824" expanded="true" signature="4974:4998" placeholder="SELECT UUID ..Storage..." />
+                <marker date="1386780557824" expanded="true" signature="5285:5309" placeholder="SELECT UUID ..Servers..." />
+                <marker date="1386780557824" expanded="true" signature="5964:5988" placeholder="SELECT UUID ..Servers..." />
+                <marker date="1386780557824" expanded="true" signature="6087:6137" placeholder="SELECT UUID,..Jobs..." />
+                <marker date="1386780557824" expanded="true" signature="6700:6764" placeholder="UPDATE Jobs ..." />
+                <marker date="1386780557824" expanded="true" signature="9073:9316" placeholder="SELECT UUID,..Jobs..." />
+                <marker date="1386780557824" expanded="true" signature="10389:10431" placeholder="UPDATE Jobs ..." />
+                <marker date="1386780557824" expanded="true" signature="11101:11169" placeholder="SELECT JobSu..Jobs..." />
+                <marker date="1386780557824" expanded="true" signature="11556:11609" placeholder="DELETE FROM ..." />
+                <marker date="1386780557824" expanded="true" signature="11672:11714" placeholder="UPDATE Jobs ..." />
+                <marker date="1386780557824" expanded="true" signature="13337:13371" placeholder="DELETE FROM ..." />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FindManager">
+    <FindUsagesManager>
+      <setting name="OPEN_NEW_TAB" value="false" />
+    </FindUsagesManager>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitLogSettings">
+    <option name="myStructureFilterPaths" />
+    <option name="myDateState">
+      <MyDateState />
+    </option>
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="changedFiles">
+      <list>
+        <option value="$PROJECT_DIR$/web2py/applications/fflock/static/html5-file-upload/assets/css/styles.css" />
+        <option value="$PROJECT_DIR$/web2py/applications/fflock/views/default/submit.html" />
+        <option value="$PROJECT_DIR$/web2py/applications/fflock/static/css/web2py.css" />
+        <option value="$PROJECT_DIR$/web2py/applications/fflock/models/menu.py" />
+        <option value="$PROJECT_DIR$/web2py/applications/fflock/views/default/jobs.html" />
+        <option value="$PROJECT_DIR$/web2py/applications/fflock/views/default/status.html" />
+        <option value="$PROJECT_DIR$/modules/fflock_threading.py" />
+        <option value="$PROJECT_DIR$/modules/fflock_threadpool.py" />
+        <option value="$PROJECT_DIR$/modules/fflock_utility.py" />
+        <option value="dbtable:/6a5f2c46/10749892-ebd5-41bf-b109-5b3296e33e8e/fflock..Jobs" />
+        <option value="dbtable:/6a5f2c46/10749892-ebd5-41bf-b109-5b3296e33e8e/fflock..Servers" />
+        <option value="$PROJECT_DIR$/web2py/applications/fflock/controllers/default.py" />
+        <option value="$PROJECT_DIR$/fflock-master.py" />
+        <option value="$PROJECT_DIR$/fflock-storage.py" />
+        <option value="$PROJECT_DIR$/fflock-slave.py" />
+        <option value="$PROJECT_DIR$/web2py/applications/fflock/models/db.py" />
+      </list>
+    </option>
+  </component>
+  <component name="ProjectFrameBounds">
+    <option name="x" value="-8" />
+    <option name="y" value="-8" />
+    <option name="width" value="1616" />
+    <option name="height" value="876" />
+  </component>
+  <component name="ProjectInspectionProfilesVisibleTreeState">
+    <entry key="Project Default">
+      <profile-state>
+        <expanded-state>
+          <State>
+            <id />
+          </State>
+        </expanded-state>
+        <selected-state>
+          <State>
+            <id>Python</id>
+          </State>
+        </selected-state>
+      </profile-state>
+    </entry>
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <OptionsSetting value="true" id="Add" />
+    <OptionsSetting value="true" id="Remove" />
+    <OptionsSetting value="true" id="Checkout" />
+    <OptionsSetting value="true" id="Update" />
+    <OptionsSetting value="true" id="Status" />
+    <OptionsSetting value="true" id="Edit" />
+    <ConfirmationsSetting value="0" id="Add" />
+    <ConfirmationsSetting value="0" id="Remove" />
+  </component>
+  <component name="ProjectReloadState">
+    <option name="STATE" value="0" />
+  </component>
+  <component name="ProjectView">
+    <navigator currentView="Scope" currentSubView="Project Files" proportions="" version="1" splitterProportion="0.5">
+      <flattenPackages />
+      <showMembers ProjectPane="false" />
+      <showModules />
+      <showLibraryContents />
+      <hideEmptyPackages />
+      <abbreviatePackageNames />
+      <autoscrollToSource ProjectPane="false" />
+      <autoscrollFromSource ProjectPane="true" />
+      <sortByType />
+    </navigator>
+    <panes>
+      <pane id="ProjectPane">
+        <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="fflock" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="External Libraries" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ExternalLibrariesNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="fflock" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="fflock" />
+              <option name="myItemType" value="com.jetbrains.web2py.projectView.Web2PyBaseDirNode" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+      <pane id="Scope">
+        <subPane subId="Default">
+          <PATH>
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+        <subPane subId="Problems" />
+        <subPane subId="Project Files">
+          <PATH>
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+        <subPane subId="Changed Files">
+          <PATH>
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT USER_OBJECT="fflock">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth0" value="75" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth1" value="75" />
+    <property name="options.splitter.main.proportions" value="0.3" />
+    <property name="recentsLimit" value="5" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder1" value="1" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth0" value="78" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder0" value="0" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../test" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth2" value="75" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth3" value="753" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth3" value="746" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth2" value="73" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth1" value="67" />
+    <property name="Database.TableEditor.Splitter" value="0.7770961" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder2" value="2" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder3" value="3" />
+    <property name="FullScreen" value="false" />
+    <property name="options.splitter.details.proportions" value="0.2" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder0" value="0" />
+    <property name="Console.TableResult.DefaultCopyAction" value="Comma-separated Values (CSV)" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder3" value="3" />
+    <property name="full.screen.before.presentation.mode" value="false" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder1" value="1" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder2" value="2" />
+    <property name="options.lastSelected" value="com.jetbrains.python.configuration.PythonContentEntriesConfigurable" />
+    <property name="DefaultHtmlFileTemplate" value="Html5" />
+    <property name="TODO_SCOPE" value="All" />
+    <property name="restartRequiresConfirmation" value="true" />
+    <property name="dynamic.classpath" value="false" />
+    <property name="options.searchVisible" value="true" />
+  </component>
+  <component name="PyConsoleOptionsProvider">
+    <option name="myPythonConsoleState">
+      <console-settings module-name="fflock" is-module-sdk="true">
+        <option name="myUseModuleSdk" value="true" />
+        <option name="myModuleName" value="fflock" />
+      </console-settings>
+    </option>
+  </component>
+  <component name="PyCoverageOptionsProvider">
+    <option name="myUseBundledCoveragePy" value="true" />
+  </component>
+  <component name="PyDebuggerOptionsProvider">
+    <option name="mySaveCallSignatures" value="true" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\Development\Projects\fflock\modules\web2py\applications\fflock\views\default" />
+      <recent name="D:\Development\Projects\fflock\modules\web2py" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.admin">
+    <configuration default="true" type="DjangoTestsConfigurationType" factoryName="Django tests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="TARGET" value="" />
+      <option name="SETTINGS_FILE" value="" />
+      <option name="CUSTOM_SETTINGS" value="false" />
+      <option name="USE_OPTIONS" value="false" />
+      <option name="OPTIONS" value="" />
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="py.test">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <option name="testToRun" value="" />
+      <option name="keywords" value="" />
+      <option name="params" value="" />
+      <option name="USE_PARAM" value="false" />
+      <option name="USE_KEYWORD" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="Python.AppEngineServer" factoryName="App Engine server">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="launchJavascriptDebuger" value="false" />
+      <option name="browserUrl" value="" />
+      <option name="additionalOptions" value="" />
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Nosetests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <option name="PARAMS" value="" />
+      <option name="USE_PARAM" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <method />
+    </configuration>
+    <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug" singleton="true">
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Unittests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <option name="PUREUNITTEST" value="true" />
+      <option name="PARAMS" value="" />
+      <option name="USE_PARAM" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="NodeJSConfigurationType" factoryName="Node.js" working-dir="">
+      <browser start="false" url="" with-js-debugger="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Doctests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Attests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="com.intellij.persistence.run.ConsoleRunConfigurationType" factoryName="Query Language Console">
+      <option name="VM_PARAMETERS" value="" />
+      <option name="USER_CFG_CLASS" />
+      <option name="CONTEXT_PROVIDER" />
+      <method />
+    </configuration>
+    <configuration default="false" name="Master - CL1" type="PythonConfigurationType" factoryName="Python" singleton="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="ssh://root@192.168.206.133:22/usr/bin/python" />
+      <option name="WORKING_DIRECTORY" value="/mnt/hgfs/fflock/" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="/mnt/hgfs/fflock/fflock-master.py" />
+      <option name="PARAMETERS" value="-c ./config/config.xml" />
+      <RunnerSettings RunnerId="PyDebugRunner" />
+      <RunnerSettings RunnerId="PythonCover" />
+      <RunnerSettings RunnerId="PythonRunner" />
+      <ConfigurationWrapper RunnerId="PyDebugRunner" />
+      <ConfigurationWrapper RunnerId="PythonCover" />
+      <ConfigurationWrapper RunnerId="PythonRunner" />
+      <method />
+    </configuration>
+    <configuration default="false" name="Storage - CL1" type="PythonConfigurationType" factoryName="Python" singleton="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="ssh://root@192.168.206.133:22/usr/bin/python" />
+      <option name="WORKING_DIRECTORY" value="/mnt/hgfs/fflock/" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="/mnt/hgfs/fflock/fflock-storage.py" />
+      <option name="PARAMETERS" value="-c ./config/config.xml" />
+      <RunnerSettings RunnerId="PyDebugRunner" />
+      <RunnerSettings RunnerId="PythonCover" />
+      <RunnerSettings RunnerId="PythonRunner" />
+      <ConfigurationWrapper RunnerId="PyDebugRunner" />
+      <ConfigurationWrapper RunnerId="PythonCover" />
+      <ConfigurationWrapper RunnerId="PythonRunner" />
+      <method />
+    </configuration>
+    <configuration default="false" name="Slave - CL1" type="PythonConfigurationType" factoryName="Python" singleton="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="ssh://root@192.168.206.133:22/usr/bin/python" />
+      <option name="WORKING_DIRECTORY" value="/mnt/hgfs/fflock/" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="/mnt/hgfs/fflock/fflock-slave.py" />
+      <option name="PARAMETERS" value="-c ./config/config.xml" />
+      <RunnerSettings RunnerId="PyDebugRunner" />
+      <RunnerSettings RunnerId="PythonCover" />
+      <RunnerSettings RunnerId="PythonRunner" />
+      <ConfigurationWrapper RunnerId="PyDebugRunner" />
+      <ConfigurationWrapper RunnerId="PythonCover" />
+      <ConfigurationWrapper RunnerId="PythonRunner" />
+      <method />
+    </configuration>
+    <configuration default="false" name="Slave - CL2" type="PythonConfigurationType" factoryName="Python" singleton="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="ssh://root@192.168.206.134:22/usr/bin/python" />
+      <option name="WORKING_DIRECTORY" value="/mnt/hgfs/fflock/" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="/mnt/hgfs/fflock/fflock-slave.py" />
+      <option name="PARAMETERS" value="-c ./config/config.xml" />
+      <RunnerSettings RunnerId="PyDebugRunner" />
+      <RunnerSettings RunnerId="PythonCover" />
+      <RunnerSettings RunnerId="PythonRunner" />
+      <ConfigurationWrapper RunnerId="PyDebugRunner" />
+      <ConfigurationWrapper RunnerId="PythonCover" />
+      <ConfigurationWrapper RunnerId="PythonRunner" />
+      <method />
+    </configuration>
+    <configuration default="false" name="Slave - CL3" type="PythonConfigurationType" factoryName="Python" singleton="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="ssh://root@192.168.206.135:22/usr/bin/python" />
+      <option name="WORKING_DIRECTORY" value="/mnt/hgfs/fflock/" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="/mnt/hgfs/fflock/fflock-slave.py" />
+      <option name="PARAMETERS" value="-c ./config/config.xml" />
+      <RunnerSettings RunnerId="PyDebugRunner" />
+      <RunnerSettings RunnerId="PythonCover" />
+      <RunnerSettings RunnerId="PythonRunner" />
+      <ConfigurationWrapper RunnerId="PyDebugRunner" />
+      <ConfigurationWrapper RunnerId="PythonCover" />
+      <ConfigurationWrapper RunnerId="PythonRunner" />
+      <method />
+    </configuration>
+    <configuration default="false" name="Slave - CL4" type="PythonConfigurationType" factoryName="Python" singleton="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="ssh://root@192.168.206.136:22/usr/bin/python" />
+      <option name="WORKING_DIRECTORY" value="/mnt/hgfs/fflock/" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="/mnt/hgfs/fflock/fflock-slave.py" />
+      <option name="PARAMETERS" value="-c ./config/config.xml" />
+      <RunnerSettings RunnerId="PyDebugRunner" />
+      <RunnerSettings RunnerId="PythonCover" />
+      <RunnerSettings RunnerId="PythonRunner" />
+      <ConfigurationWrapper RunnerId="PyDebugRunner" />
+      <ConfigurationWrapper RunnerId="PythonCover" />
+      <ConfigurationWrapper RunnerId="PythonRunner" />
+      <method />
+    </configuration>
+    <configuration default="false" name="admin" type="PythonConfigurationType" factoryName="Python">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="ssh://root@192.168.206.133:22/usr/bin/python" />
+      <option name="WORKING_DIRECTORY" value="/mnt/hgfs/fflock/" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="fflock" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="/mnt/hgfs/fflock/fflock-admin.py" />
+      <option name="PARAMETERS" value="" />
+      <RunnerSettings RunnerId="PyDebugRunner" />
+      <RunnerSettings RunnerId="PythonRunner" />
+      <ConfigurationWrapper RunnerId="PyDebugRunner" />
+      <ConfigurationWrapper RunnerId="PythonRunner" />
+      <method />
+    </configuration>
+    <list size="7">
+      <item index="0" class="java.lang.String" itemvalue="Python.Master - CL1" />
+      <item index="1" class="java.lang.String" itemvalue="Python.Storage - CL1" />
+      <item index="2" class="java.lang.String" itemvalue="Python.Slave - CL1" />
+      <item index="3" class="java.lang.String" itemvalue="Python.Slave - CL2" />
+      <item index="4" class="java.lang.String" itemvalue="Python.Slave - CL3" />
+      <item index="5" class="java.lang.String" itemvalue="Python.Slave - CL4" />
+      <item index="6" class="java.lang.String" itemvalue="Python.admin" />
+    </list>
+  </component>
+  <component name="ShelveChangesManager" show_recycled="false" />
+  <component name="StructureViewFactory">
+    <option name="AUTOSCROLL_MODE" value="false" />
+    <option name="AUTOSCROLL_FROM_SOURCE" value="true" />
+  </component>
+  <component name="SvnConfiguration" maxAnnotateRevisions="500" myUseAcceleration="nothing" myAutoUpdateAfterCommit="false" cleanupOnStartRun="false" SSL_PROTOCOLS="all">
+    <option name="USER" value="" />
+    <option name="PASSWORD" value="" />
+    <option name="mySSHConnectionTimeout" value="30000" />
+    <option name="mySSHReadTimeout" value="30000" />
+    <option name="LAST_MERGED_REVISION" />
+    <option name="MERGE_DRY_RUN" value="false" />
+    <option name="MERGE_DIFF_USE_ANCESTRY" value="true" />
+    <option name="UPDATE_LOCK_ON_DEMAND" value="false" />
+    <option name="IGNORE_SPACES_IN_MERGE" value="false" />
+    <option name="CHECK_NESTED_FOR_QUICK_MERGE" value="false" />
+    <option name="IGNORE_SPACES_IN_ANNOTATE" value="true" />
+    <option name="SHOW_MERGE_SOURCES_IN_ANNOTATE" value="true" />
+    <option name="FORCE_UPDATE" value="false" />
+    <option name="IGNORE_EXTERNALS" value="false" />
+    <myIsUseDefaultProxy>false</myIsUseDefaultProxy>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="ac055e46-4d74-4334-8553-14e6dedf5e50" name="Default" comment="" />
+      <created>1381265365451</created>
+      <updated>1381265365451</updated>
+    </task>
+    <task id="LOCAL-00001" summary="Refactored code&#10;Stability fixes">
+      <created>1381525158496</created>
+      <updated>1381525158496</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Bug fixes">
+      <created>1381879889148</created>
+      <updated>1381879889148</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Submission changes">
+      <created>1382711896701</created>
+      <updated>1382711896701</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Added http and ftp urls as source location. File is copied to NFS share for processing and deleted afterward.">
+      <created>1383283376943</created>
+      <updated>1383283376943</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Added Amazon AWS S3 upload and download for source and destination files.">
+      <created>1383600671341</created>
+      <updated>1383600671341</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Bug fixes">
+      <created>1383673085115</created>
+      <updated>1383673085115</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Bug fixes">
+      <created>1383803423638</created>
+      <updated>1383803423638</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Portability fixes.&#10;Admin menu changes">
+      <created>1383851518010</created>
+      <updated>1383851518010</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Web interface ajax refresh">
+      <created>1384232033835</created>
+      <updated>1384232033835</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Restructured project files">
+      <created>1384275481053</created>
+      <updated>1384275481053</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Restructured project files">
+      <created>1384275940520</created>
+      <updated>1384275940522</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Restructured job cleanup procedure - now scheduled as as separate job at the end of a master job.&#10;Added multi-threading for storage server jobs&#10;Added drag-and-drop uploads for admin interface&#10;Storage server automatically creates output folders">
+      <created>1385416482215</created>
+      <updated>1385416482215</updated>
+    </task>
+    <task id="LOCAL-00013" summary="Code cleanup.&#10;Added license">
+      <created>1386780215871</created>
+      <updated>1386780215871</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
+    <servers />
+  </component>
+  <component name="TodoView" selected-index="4">
+    <todo-panel id="selected-file">
+      <are-packages-shown value="false" />
+      <are-modules-shown value="false" />
+      <flatten-packages value="false" />
+      <is-autoscroll-to-source value="true" />
+    </todo-panel>
+    <todo-panel id="all">
+      <are-packages-shown value="false" />
+      <are-modules-shown value="false" />
+      <flatten-packages value="false" />
+      <is-autoscroll-to-source value="false" />
+    </todo-panel>
+    <todo-panel id="default-changelist">
+      <are-packages-shown value="false" />
+      <are-modules-shown value="false" />
+      <flatten-packages value="false" />
+      <is-autoscroll-to-source value="false" />
+    </todo-panel>
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="-8" y="-8" width="1616" height="876" extended-state="6" />
+    <editor active="true" />
+    <layout>
+      <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.46544278" sideWeight="0.85899514" order="8" side_tool="false" content_ui="tabs" x="63" y="51" width="1305" height="745" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.29697624" sideWeight="0.8273906" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32222223" sideWeight="0.6853282" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.117117114" sideWeight="0.55431753" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.14671814" sideWeight="0.28947368" order="0" side_tool="true" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.14671814" sideWeight="0.7105263" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.5106635" sideWeight="0.81118315" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.17503217" sideWeight="0.34444445" order="1" side_tool="true" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.48333332" sideWeight="0.7715573" order="9" side_tool="true" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.14861111" sideWeight="0.7380952" order="5" side_tool="false" content_ui="tabs" x="108" y="242" width="1142" height="435" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32624114" sideWeight="0.81118315" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.35815603" sideWeight="0.83468395" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="12" side_tool="false" content_ui="tabs" />
+      <window_info id="REST Client" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32963988" sideWeight="0.6833977" order="13" side_tool="false" content_ui="tabs" />
+      <window_info id="Coverage" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.17824967" sideWeight="0.44428968" order="3" side_tool="true" content_ui="tabs" />
+      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="DB Browser" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.19111969" sideWeight="0.46518105" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Inspection" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.39889196" sideWeight="0.65701413" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="DB Execution Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
+    </layout>
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="myTodoPanelSettings">
+      <TodoPanelSettings />
+    </option>
+    <MESSAGE value="Refactored code&#10;Stability fixes" />
+    <MESSAGE value="Submission changes" />
+    <MESSAGE value="Added http and ftp urls as source location. File is copied to NFS share for processing and deleted afterward." />
+    <MESSAGE value="Added Amazon AWS S3 upload and download for source and destination files." />
+    <MESSAGE value="Bug fixes" />
+    <MESSAGE value="Portability fixes.&#10;Admin menu changes" />
+    <MESSAGE value="Web interface ajax refresh" />
+    <MESSAGE value="Restructured project files" />
+    <MESSAGE value="Restructured job cleanup procedure - now scheduled as as separate job at the end of a master job.&#10;Added multi-threading for storage server jobs&#10;Added drag-and-drop uploads for admin interface&#10;Storage server automatically creates output folders" />
+    <MESSAGE value="Code cleanup.&#10;Added license" />
+    <option name="LAST_COMMIT_MESSAGE" value="Code cleanup.&#10;Added license" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints-dialog>
+        <breakpoints-dialog />
+      </breakpoints-dialog>
+      <option name="time" value="14" />
+    </breakpoint-manager>
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/web2py/applications/fflock/views/default/jobs.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="15" column="22" selection-start="299" selection-end="299" vertical-scroll-proportion="0.3601695" vertical-offset="0" max-vertical-offset="708" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/web2py/applications/fflock/views/default/status.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="3" column="12" selection-start="76" selection-end="76" vertical-scroll-proportion="0.0720339" vertical-offset="0" max-vertical-offset="708" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/modules/fflock_utility.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="407" column="0" selection-start="10404" selection-end="10404" vertical-scroll-proportion="0.26397514" vertical-offset="6494" max-vertical-offset="10574" />
+      </provider>
+    </entry>
+    <entry file="dbDummy://dbtable:/6a5f2c46/10749892-ebd5-41bf-b109-5b3296e33e8e/fflock..files">
+      <provider selected="true" editor-type-id="com.intellij.persistence.database.editor.DatabaseTableFileEditorProvider">
+        <state />
+      </provider>
+      <provider editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="102" />
+      </provider>
+    </entry>
+    <entry file="dbDummy://dbtable:/6a5f2c46/10749892-ebd5-41bf-b109-5b3296e33e8e/fflock..Servers">
+      <provider selected="true" editor-type-id="com.intellij.persistence.database.editor.DatabaseTableFileEditorProvider">
+        <state />
+      </provider>
+      <provider editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="102" />
+      </provider>
+    </entry>
+    <entry file="dbDummy://dbtable:/6a5f2c46/10749892-ebd5-41bf-b109-5b3296e33e8e/fflock..Jobs">
+      <provider selected="true" editor-type-id="com.intellij.persistence.database.editor.DatabaseTableFileEditorProvider">
+        <state />
+      </provider>
+      <provider editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="527" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/web2py/applications/fflock/controllers/default.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="21" column="0" selection-start="462" selection-end="462" vertical-scroll-proportion="0.53125" vertical-offset="0" max-vertical-offset="4097" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/modules/fflock_threadpool.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="697" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="517" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/fflock-admin.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="6" column="0" selection-start="222" selection-end="222" vertical-scroll-proportion="0.14697406" vertical-offset="0" max-vertical-offset="694" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/fflock-slave.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="289" column="28" selection-start="9628" selection-end="9628" vertical-scroll-proportion="-3.7929516" vertical-offset="7309" max-vertical-offset="9367" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/config/config.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="683" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/modules/fflock_globals.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="8" column="28" selection-start="194" selection-end="194" vertical-scroll-proportion="0.1954023" vertical-offset="0" max-vertical-offset="696" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/fflock-storage.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="367" column="0" selection-start="12537" selection-end="12537" vertical-scroll-proportion="8.860908" vertical-offset="0" max-vertical-offset="6477" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/web2py/applications/fflock/models/db.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="182" column="0" selection-start="6459" selection-end="6459" vertical-scroll-proportion="0.5959253" vertical-offset="2709" max-vertical-offset="3502" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/fflock-master.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="103" column="0" selection-start="3031" selection-end="3031" vertical-scroll-proportion="0.4978038" vertical-offset="1275" max-vertical-offset="10030">
+          <folding>
+            <marker date="1386780557824" expanded="true" signature="469:532" placeholder="DELETE FROM ..." />
+            <marker date="1386780557824" expanded="true" signature="749:842" placeholder="SELECT Local..Servers..." />
+            <marker date="1386780557824" expanded="true" signature="939:1050" placeholder="INSERT INTO ..." />
+            <marker date="1386780557824" expanded="true" signature="1509:1626" placeholder="UPDATE Serve..." />
+            <marker date="1386780557824" expanded="true" signature="2016:2063" placeholder="DELETE FROM ..." />
+            <marker date="1386780557824" expanded="true" signature="2504:2577" placeholder="SELECT LastS..Servers..." />
+            <marker date="1386780557824" expanded="true" signature="2781:2843" placeholder="DELETE FROM ..." />
+            <marker date="1386780557824" expanded="true" signature="2890:2943" placeholder="DELETE FROM ..." />
+            <marker date="1386780557824" expanded="true" signature="3163:3199" placeholder="SELECT Stora..Connectivity..." />
+            <marker date="1386780557824" expanded="true" signature="3374:3398" placeholder="SELECT UUID ..Storage..." />
+            <marker date="1386780557824" expanded="true" signature="3734:3783" placeholder="DELETE FROM ..." />
+            <marker date="1386780557824" expanded="true" signature="3990:4065" placeholder="SELECT LastS..Servers..." />
+            <marker date="1386780557824" expanded="true" signature="4307:4367" placeholder="SELECT UUID,..Storage..." />
+            <marker date="1386780557824" expanded="true" signature="4492:4541" placeholder="DELETE FROM ..." />
+            <marker date="1386780557824" expanded="true" signature="4589:4632" placeholder="DELETE FROM ..." />
+            <marker date="1386780557824" expanded="true" signature="4679:4743" placeholder="DELETE FROM ..." />
+            <marker date="1386780557824" expanded="true" signature="4974:4998" placeholder="SELECT UUID ..Storage..." />
+            <marker date="1386780557824" expanded="true" signature="5285:5309" placeholder="SELECT UUID ..Servers..." />
+            <marker date="1386780557824" expanded="true" signature="5964:5988" placeholder="SELECT UUID ..Servers..." />
+            <marker date="1386780557824" expanded="true" signature="6087:6137" placeholder="SELECT UUID,..Jobs..." />
+            <marker date="1386780557824" expanded="true" signature="6700:6764" placeholder="UPDATE Jobs ..." />
+            <marker date="1386780557824" expanded="true" signature="9073:9316" placeholder="SELECT UUID,..Jobs..." />
+            <marker date="1386780557824" expanded="true" signature="10389:10431" placeholder="UPDATE Jobs ..." />
+            <marker date="1386780557824" expanded="true" signature="11101:11169" placeholder="SELECT JobSu..Jobs..." />
+            <marker date="1386780557824" expanded="true" signature="11556:11609" placeholder="DELETE FROM ..." />
+            <marker date="1386780557824" expanded="true" signature="11672:11714" placeholder="UPDATE Jobs ..." />
+            <marker date="1386780557824" expanded="true" signature="13337:13371" placeholder="DELETE FROM ..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+  </component>
+  <component name="masterDetails">
+    <states>
+      <state key="ScopeChooserConfigurable.UI">
+        <settings>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+    </states>
+  </component>
+</project>
+

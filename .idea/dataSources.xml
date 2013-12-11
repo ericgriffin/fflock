@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourceManagerImpl" format="xml" hash="87301950">
+    <data-source source="LOCAL" name="fflock local vmware" uuid="10749892-ebd5-41bf-b109-5b3296e33e8e">
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.mysql.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql://192.168.206.133:3306/fflock</jdbc-url>
+      <user-name>fflock</user-name>
+      <user-password>dfccdfccdfc6dfc5dfc9dfc1</user-password>
+      <schema-pattern>fflock.*</schema-pattern>
+      <default-dialect>MySQL</default-dialect>
+      <libraries />
+    </data-source>
+  </component>
+</project>
+

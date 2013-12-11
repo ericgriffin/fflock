@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="dataSourceStorage">
+  <data-source source="LOCAL" name="fflock local vmware" product="MySQL" version="5.1.69" jdbc-version="4.0" driver-name="MySQL Connector Java" driver-version="mysql-connector-java-5.1.26 ( Revision: ${bzr.revision-id} )" uuid="10749892-ebd5-41bf-b109-5b3296e33e8e">
+    <case-sensitivity plain-identifiers="exact" quoted-identifiers="exact"/>
+    <extra-name-characters>#@</extra-name-characters>
+    <identifier-quote-string>`</identifier-quote-string>
+    <synchronize>true</synchronize>
+    <jdbc-driver>com.mysql.jdbc.Driver</jdbc-driver>
+    <jdbc-url>jdbc:mysql://192.168.206.133:3306/fflock</jdbc-url>
+    <user-name>fflock</user-name>
+    <user-password>dfccdfccdfc6dfc5dfc9dfc1</user-password>
+    <schema-pattern>fflock.*</schema-pattern>
+    <default-dialect>MySQL</default-dialect>
+    <libraries/>
+    <schema name="" catalog="fflock"/>
+    <table name="Connectivity" schema="" catalog="fflock" type="TABLE">
+      <column name="ID" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4" autoIncrement="true"/>
+      <column name="SlaveServerUUID" sqlType="VARCHAR" length="256" precision="0" nullable="false" jdbcType="12"/>
+      <column name="StorageUUID" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="Latency" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4"/>
+      <column name="IPType" sqlType="VARCHAR" length="256" precision="0" nullable="false" jdbcType="12"/>
+      <column name="Connected" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4"/>
+      <primary-key name="PRIMARY" columns="ID"/>
+    </table>
+    <table name="Jobs" schema="" catalog="fflock" type="TABLE">
+      <column name="ID" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4" autoIncrement="true"/>
+      <column name="JobType" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="JobSubType" sqlType="VARCHAR" length="256" precision="0" nullable="false" jdbcType="12"/>
+      <column name="Command" sqlType="VARCHAR" length="256" precision="0" nullable="false" jdbcType="12"/>
+      <column name="CommandPreOptions" sqlType="VARCHAR" length="256" precision="0" nullable="false" jdbcType="12"/>
+      <column name="CommandOptions" sqlType="VARCHAR" length="256" precision="0" nullable="false" jdbcType="12"/>
+      <column name="JobInput" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="JobOutput" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="JobOptions" sqlType="VARCHAR" length="256" precision="0" nullable="false" jdbcType="12"/>
+      <column name="Assigned" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4"/>
+      <column name="State" sqlType="INT" length="10" precision="0" nullable="true" jdbcType="4"/>
+      <column name="Progress" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4"/>
+      <column name="Priority" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4"/>
+      <column name="ResultValue1" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="ResultValue2" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="Dependencies" sqlType="VARCHAR" length="4096" precision="0" nullable="false" jdbcType="12"/>
+      <column name="UUID" sqlType="VARCHAR" length="256" precision="0" nullable="false" jdbcType="12"/>
+      <column name="AssignedServerUUID" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="StorageUUID" sqlType="VARCHAR" length="256" precision="0" nullable="false" jdbcType="12"/>
+      <column name="MasterUUID" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="AssignedTime" sqlType="TIMESTAMP" length="19" precision="0" nullable="false" jdbcType="93" def="Q1VSUkVOVF9USU1FU1RBTVA="/>
+      <column name="CreatedTime" sqlType="TIMESTAMP" length="19" precision="0" nullable="false" jdbcType="93" def="JzAwMDAtMDAtMDAgMDA6MDA6MDAn"/>
+      <column name="FinishedTime" sqlType="TIMESTAMP" length="19" precision="0" nullable="false" jdbcType="93" def="JzAwMDAtMDAtMDAgMDA6MDA6MDAn"/>
+      <primary-key name="PRIMARY" columns="ID"/>
+    </table>
+    <table name="Servers" schema="" catalog="fflock" type="TABLE">
+      <column name="ID" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4" autoIncrement="true"/>
+      <column name="UUID" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="ServerType" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="State" sqlType="INT" length="10" precision="0" nullable="true" jdbcType="4"/>
+      <column name="LocalIP" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="PublicIP" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="LastSeen" sqlType="TIMESTAMP" length="19" precision="0" nullable="false" jdbcType="93" def="Q1VSUkVOVF9USU1FU1RBTVA="/>
+      <primary-key name="PRIMARY" columns="ID"/>
+    </table>
+    <table name="Storage" schema="" catalog="fflock" type="TABLE">
+      <column name="ID" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4" autoIncrement="true"/>
+      <column name="UUID" sqlType="VARCHAR" length="256" precision="0" nullable="false" jdbcType="12"/>
+      <column name="ServerUUID" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="StorageType" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="LocalPathNFS" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <column name="PublicPathNFS" sqlType="VARCHAR" length="256" precision="0" nullable="true" jdbcType="12"/>
+      <primary-key name="PRIMARY" columns="ID"/>
+    </table>
+    <table name="auth_cas" schema="" catalog="fflock" type="TABLE">
+      <column name="id" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4" autoIncrement="true"/>
+      <column name="user_id" sqlType="INT" length="10" precision="0" nullable="true" jdbcType="4"/>
+      <column name="created_on" sqlType="DATETIME" length="19" precision="0" nullable="true" jdbcType="93"/>
+      <column name="service" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <column name="ticket" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <column name="renew" sqlType="CHAR" length="1" precision="0" nullable="true" jdbcType="1"/>
+      <primary-key name="PRIMARY" columns="id"/>
+      <foreign-key name="auth_cas_ibfk_1" columns="user_id" ref-table="auth_user" ref-schema="" ref-catalog="fflock" ref-columns="id" update-rule="3" delete-rule="0" deferrability="2"/>
+      <index name="user_id__idx" unique="false" columns="user_id"/>
+    </table>
+    <table name="auth_event" schema="" catalog="fflock" type="TABLE">
+      <column name="id" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4" autoIncrement="true"/>
+      <column name="time_stamp" sqlType="DATETIME" length="19" precision="0" nullable="true" jdbcType="93"/>
+      <column name="client_ip" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <column name="user_id" sqlType="INT" length="10" precision="0" nullable="true" jdbcType="4"/>
+      <column name="origin" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <column name="description" sqlType="LONGTEXT" length="2147483647" precision="0" nullable="true" jdbcType="-1"/>
+      <primary-key name="PRIMARY" columns="id"/>
+      <foreign-key name="auth_event_ibfk_1" columns="user_id" ref-table="auth_user" ref-schema="" ref-catalog="fflock" ref-columns="id" update-rule="3" delete-rule="0" deferrability="2"/>
+      <index name="user_id__idx" unique="false" columns="user_id"/>
+    </table>
+    <table name="auth_group" schema="" catalog="fflock" type="TABLE">
+      <column name="id" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4" autoIncrement="true"/>
+      <column name="role" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <column name="description" sqlType="LONGTEXT" length="2147483647" precision="0" nullable="true" jdbcType="-1"/>
+      <primary-key name="PRIMARY" columns="id"/>
+      <exported-key name="auth_membership_ibfk_2" table="auth_membership" schema="" catalog="fflock" columns="group_id"/>
+      <exported-key name="auth_permission_ibfk_1" table="auth_permission" schema="" catalog="fflock" columns="group_id"/>
+    </table>
+    <table name="auth_membership" schema="" catalog="fflock" type="TABLE">
+      <column name="id" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4" autoIncrement="true"/>
+      <column name="user_id" sqlType="INT" length="10" precision="0" nullable="true" jdbcType="4"/>
+      <column name="group_id" sqlType="INT" length="10" precision="0" nullable="true" jdbcType="4"/>
+      <primary-key name="PRIMARY" columns="id"/>
+      <foreign-key name="auth_membership_ibfk_1" columns="user_id" ref-table="auth_user" ref-schema="" ref-catalog="fflock" ref-columns="id" update-rule="3" delete-rule="0" deferrability="2"/>
+      <foreign-key name="auth_membership_ibfk_2" columns="group_id" ref-table="auth_group" ref-schema="" ref-catalog="fflock" ref-columns="id" update-rule="3" delete-rule="0" deferrability="2"/>
+      <index name="group_id__idx" unique="false" columns="group_id"/>
+      <index name="user_id__idx" unique="false" columns="user_id"/>
+    </table>
+    <table name="auth_permission" schema="" catalog="fflock" type="TABLE">
+      <column name="id" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4" autoIncrement="true"/>
+      <column name="group_id" sqlType="INT" length="10" precision="0" nullable="true" jdbcType="4"/>
+      <column name="name" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <column name="table_name" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <column name="record_id" sqlType="INT" length="10" precision="0" nullable="true" jdbcType="4"/>
+      <primary-key name="PRIMARY" columns="id"/>
+      <foreign-key name="auth_permission_ibfk_1" columns="group_id" ref-table="auth_group" ref-schema="" ref-catalog="fflock" ref-columns="id" update-rule="3" delete-rule="0" deferrability="2"/>
+      <index name="group_id__idx" unique="false" columns="group_id"/>
+    </table>
+    <table name="auth_user" schema="" catalog="fflock" type="TABLE">
+      <column name="id" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4" autoIncrement="true"/>
+      <column name="first_name" sqlType="VARCHAR" length="128" precision="0" nullable="true" jdbcType="12"/>
+      <column name="last_name" sqlType="VARCHAR" length="128" precision="0" nullable="true" jdbcType="12"/>
+      <column name="email" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <column name="password" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <column name="registration_key" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <column name="reset_password_key" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <column name="registration_id" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <primary-key name="PRIMARY" columns="id"/>
+      <exported-key name="auth_cas_ibfk_1" table="auth_cas" schema="" catalog="fflock" columns="user_id"/>
+      <exported-key name="auth_event_ibfk_1" table="auth_event" schema="" catalog="fflock" columns="user_id"/>
+      <exported-key name="auth_membership_ibfk_1" table="auth_membership" schema="" catalog="fflock" columns="user_id"/>
+    </table>
+    <table name="files" schema="" catalog="fflock" type="TABLE">
+      <column name="id" sqlType="INT" length="10" precision="0" nullable="false" jdbcType="4" autoIncrement="true"/>
+      <column name="title" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <column name="file" sqlType="VARCHAR" length="512" precision="0" nullable="true" jdbcType="12"/>
+      <column name="datecreated" sqlType="DATETIME" length="19" precision="0" nullable="true" jdbcType="93"/>
+      <primary-key name="PRIMARY" columns="id"/>
+    </table>
+  </data-source>
+</component>
